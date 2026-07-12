@@ -291,6 +291,7 @@
         }
 
         // --- 6. EXPORT TO EXCEL (CSV) ---
+        // --- 6. EXPORT TO EXCEL (CSV) ---
         function exportToExcel() {
             const data = JSON.parse(localStorage.getItem('returned_invoices')) || [];
             if (data.length === 0) {
@@ -298,12 +299,20 @@
                 return;
             }
 
+            // Updated CSV Headers: Date columns are now FIRST
             let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Invoice No,Brand,Branch,Item Name,Unit Price,Qty,Total Price,Production Date,Scan Time\n";
+            csvContent += "Return Date,Production Date,Scan Time,Invoice No,Brand,Branch,Item Name,Unit Price,Qty,Total Price\n";
 
             data.forEach(row => {
                 const total = (row.unitPrice * row.qty).toFixed(3);
-                const line = `"${row.invoiceNo}","${row.brand}","${row.branch}","${row.itemName}",${row.unitPrice},${row.qty},${total},"${row.productionDate}","${row.scanTimestamp}"`;
+                
+                // Extract separate Date and Time from scanTimestamp
+                const timeParts = row.scanTimestamp ? row.scanTimestamp.split(',') : ['', ''];
+                const returnDate = timeParts[0] ? timeParts[0].trim() : '';
+                const scanTime = timeParts[1] ? timeParts[1].trim() : row.scanTimestamp;
+
+                // Build CSV line with dates at the front
+                const line = `"${returnDate}","${row.productionDate}","${scanTime}","${row.invoiceNo}","${row.brand}","${row.branch}","${row.itemName}",${row.unitPrice},${row.qty},${total}`;
                 csvContent += line + "\n";
             });
 
@@ -315,7 +324,6 @@
             link.click();
             document.body.removeChild(link);
         }
-
         function clearDatabase() {
             if (confirm("Are you sure you want to clear ALL saved records? Make sure you exported first!")) {
                 localStorage.removeItem('returned_invoices');
