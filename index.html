@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
- <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Offline Return Collector</title>
@@ -9,19 +9,19 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         body { 
-    padding: 20px 10px; 
-    /* Dark Slate Gradient */
-    background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
-    min-height: 100vh;
-    color: #333;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-}
+            padding: 20px 10px; 
+            /* Dark Slate Gradient */
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            min-height: 100vh;
+            color: #333;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2 class="text-center my-3">Return Invoice Collector</h2>
+        <h2 class="text-center my-3 text-light">Return Invoice Collector</h2>
         
         <div class="card p-3 mb-3">
             <div class="mb-3">
@@ -49,6 +49,7 @@
         <div class="card p-3 mb-3 text-center">
             <h5><b>4. Scan Barcode</b></h5>
             <div id="reader"></div>
+            <button id="resumeCamBtn" class="btn btn-warning w-100 mt-2 d-none" onclick="resumeScanning()">📷 Resume Camera Scanner</button>
             <input type="text" id="manualBarcode" class="form-control mt-2" placeholder="Or enter barcode manually">
             <button class="btn btn-secondary btn-sm mt-2" onclick="lookupBarcode(document.getElementById('manualBarcode').value)">Lookup Manual Barcode</button>
         </div>
@@ -90,7 +91,36 @@
     </div>
 
     <script>
-        // --- 1. DATABASE OF ITEMS & PRICES (From Data.xlsx) ---
+        // --- SUPERMARKET BEEP AUDIO GENERATOR (Web Audio API) ---
+        let audioCtx = null;
+        function playBeepSound() {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(1760, audioCtx.currentTime); // High pitch standard beep
+                
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.15);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.15);
+            } catch(e) {
+                console.log("Audio playback failed:", e);
+            }
+        }
+
+        // --- 1. DATABASE OF ITEMS & PRICES ---
         const productDatabase = {
             "7517846597753": { "name": "Beef Stroganoff with Penne Pasta", "canteenPrice": 1.625, "trolleyPrice": 1.575 },
             "7517846597241": { "name": "Butter Chicken", "canteenPrice": 1.411, "trolleyPrice": 1.361 },
@@ -135,7 +165,7 @@
             "7517846598354": { "name": "Turkey Wrap", "canteenPrice": 0.748, "trolleyPrice": 0.748 }
         };
 
-        // --- 2. BRANCHES DATABASE (From Data.xlsx) ---
+        // --- 2. BRANCHES DATABASE ---
         const branchDatabase = {
             "Canteen": [
                 "Waha (Canteen)", "Zain Headquater (Canteen)", "Ministry of Electricity and Water Subhan (Canteen)",
@@ -166,6 +196,7 @@
         };
 
         let currentInvoiceItems = [];
+        let isScannerPaused = false;
 
         // --- 3. DYNAMIC BRANCH & BRAND HANDLER ---
         function onBrandChange() {
@@ -185,14 +216,43 @@
             }
         }
 
-        // --- 4. BARCODE SCANNER INITIALIZATION ---
+        // --- 4. BARCODE SCANNER INITIALIZATION & PAUSE LOGIC ---
         function onScanSuccess(decodedText, decodedResult) {
+            if (isScannerPaused) return;
+
+            // Play supermarket beep sound
+            playBeepSound();
+
             document.getElementById('manualBarcode').value = decodedText;
+            
+            // Pause scanner so driver can adjust Qty
+            pauseScanning();
+            
             lookupBarcode(decodedText);
         }
 
         let html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
         html5QrcodeScanner.render(onScanSuccess);
+
+        function pauseScanning() {
+            try {
+                html5QrcodeScanner.pause(true);
+                isScannerPaused = true;
+                document.getElementById('resumeCamBtn').classList.remove('d-none');
+            } catch(e) {
+                console.log("Pause error:", e);
+            }
+        }
+
+        function resumeScanning() {
+            try {
+                html5QrcodeScanner.resume();
+                isScannerPaused = false;
+                document.getElementById('resumeCamBtn').classList.add('d-none');
+            } catch(e) {
+                console.log("Resume error:", e);
+            }
+        }
 
         // --- 5. BUSINESS LOGIC ---
         function lookupBarcode(barcode) {
@@ -240,6 +300,11 @@
             
             // Clear item form for next scan
             resetItemDetails();
+
+            // Auto resume camera scanner for the next item
+            if (isScannerPaused) {
+                resumeScanning();
+            }
         }
 
         function updateItemsUI() {
@@ -294,9 +359,13 @@
             document.getElementById('invoiceNo').value = "";
             document.getElementById('itemList').innerHTML = "";
             resetItemDetails();
+
+            // Resume camera if paused
+            if (isScannerPaused) {
+                resumeScanning();
+            }
         }
 
-        // --- 6. EXPORT TO EXCEL (CSV) ---
         // --- 6. EXPORT TO EXCEL (CSV) ---
         function exportToExcel() {
             const data = JSON.parse(localStorage.getItem('returned_invoices')) || [];
@@ -305,7 +374,7 @@
                 return;
             }
 
-            // Updated CSV Headers: Date columns are now FIRST
+            // CSV Headers with Date columns FIRST
             let csvContent = "data:text/csv;charset=utf-8,";
             csvContent += "Return Date,Production Date,Scan Time,Invoice No,Brand,Branch,Item Name,Unit Price,Qty,Total Price\n";
 
@@ -317,7 +386,7 @@
                 const returnDate = timeParts[0] ? timeParts[0].trim() : '';
                 const scanTime = timeParts[1] ? timeParts[1].trim() : row.scanTimestamp;
 
-                // Build CSV line with dates at the front
+                // Build CSV line
                 const line = `"${returnDate}","${row.productionDate}","${scanTime}","${row.invoiceNo}","${row.brand}","${row.branch}","${row.itemName}",${row.unitPrice},${row.qty},${total}`;
                 csvContent += line + "\n";
             });
@@ -330,6 +399,7 @@
             link.click();
             document.body.removeChild(link);
         }
+
         function clearDatabase() {
             if (confirm("Are you sure you want to clear ALL saved records? Make sure you exported first!")) {
                 localStorage.removeItem('returned_invoices');
