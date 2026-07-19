@@ -102,7 +102,7 @@
 
             <div class="mb-3">
                 <label class="form-label"><b>3. Search/Select Branch:</b></label>
-                <input type="text" id="branch" class="form-control" placeholder="Type characters to search branch..." list="branchOptions" oninput="onBranchSelectChange()" autocomplete="off">
+                <input type="text" id="branch" class="form-control" placeholder="Type characters to search branch..." list="branchOptions" onchange="onBranchSelectChange()" autocomplete="off">
                 <datalist id="branchOptions"></datalist>
             </div>
         </div>
@@ -118,7 +118,7 @@
             <h5><b>Item Details</b></h5>
             <div class="mb-2">
                 <label>Item Name:</label>
-                <input type="text" id="itemName" class="form-control" placeholder="Type characters to search item..." list="itemOptions" oninput="onItemSearchChange()" autocomplete="off">
+                <input type="text" id="itemName" class="form-control" placeholder="Type characters to search item..." list="itemOptions" onchange="onItemSearchChange()" autocomplete="off">
                 <datalist id="itemOptions"></datalist>
             </div>
             <div class="row">
@@ -350,20 +350,15 @@
 
         function onBranchSelectChange() {
             const branchInput = document.getElementById('branch');
-            const val = branchInput.value;
-            const options = document.getElementById('branchOptions').childNodes;
-            
-            for (let i = 0; i < options.length; i++) {
-                if (options[i].value === val) {
-                    branchInput.value = val;
-                    break;
-                }
+            const val = branchInput.value.trim();
+            if (val) {
+                branchInput.value = val;
             }
         }
 
         function onItemSearchChange() {
             const itemInput = document.getElementById('itemName');
-            const typedName = itemInput.value;
+            const typedName = itemInput.value.trim();
             const brand = document.getElementById('brand').value;
             
             if (!typedName) return;
