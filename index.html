@@ -133,6 +133,9 @@
             const user = userDatabase[idInput];
 
             if (user && user.pass === passInput) {
+                // Initialize audio user interaction profile right on login button press
+                initAudioContext();
+
                 currentUser = user;
                 document.getElementById('displayDriverName').textContent = user.name;
                 document.getElementById('loginSection').classList.add('d-none');
@@ -162,30 +165,35 @@
 
         // --- SUPERMARKET BEEP AUDIO GENERATOR ---
         let audioCtx = null;
+        
+        function initAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
         function playBeepSound() {
             try {
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
+                initAudioContext();
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                  
                 osc.type = "sine";
-                osc.frequency.setValueAtTime(1760, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(1200, audioCtx.currentTime); // Crisp Scanner Beep Frequency
                  
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.12);
                  
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
                  
                 osc.start();
-                osc.stop(audioCtx.currentTime + 0.15);
+                osc.stop(audioCtx.currentTime + 0.12);
             } catch(e) {
-                console.log("Audio failed:", e);
+                console.log("Audio feedback failed:", e);
             }
         }
 
@@ -268,7 +276,6 @@
         let isScannerPaused = false;
         let html5QrcodeScanner = null;
 
-        // Automatically load item lookup selections on startup
         window.addEventListener('DOMContentLoaded', () => {
             const itemOptions = document.getElementById('itemOptions');
             const uniqueItems = new Set();
@@ -278,6 +285,11 @@
                 option.value = itemName;
                 itemOptions.appendChild(option);
             });
+
+            // Touch unlock fallback to clear any WebView restrictions on click
+            document.body.addEventListener('click', () => {
+                initAudioContext();
+            }, { once: false });
         });
 
         function onBrandChange() {
@@ -298,7 +310,6 @@
             }
         }
 
-        // Automatic matching when someone types or clicks a suggested item name
         function onItemSearchChange() {
             const typedName = document.getElementById('itemName').value.trim();
             const brand = document.getElementById('brand').value;
@@ -321,7 +332,7 @@
         // --- SCANNER LOGIC ---
         function initScanner() {
             if (!html5QrcodeScanner) {
-                html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+                html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 15, qrbox: 250 });
                 html5QrcodeScanner.render(onScanSuccess);
             }
         }
@@ -331,8 +342,15 @@
 
             playBeepSound();
             document.getElementById('manualBarcode').value = decodedText;
+            
+            // Short temporary pause to avoid frame overlapping, then immediate search lookup
             pauseScanning();
             lookupBarcode(decodedText);
+
+            // Auto-resume camera scanning workflow after 2 seconds down-time
+            setTimeout(() => {
+                resumeScanning();
+            }, 2000);
         }
 
         function pauseScanning() {
@@ -434,7 +452,6 @@
 
             let allSavedReturns = JSON.parse(localStorage.getItem('returned_invoices')) || [];
 
-            // Add flat items including Driver Name
             currentInvoiceItems.forEach(item => {
                 allSavedReturns.push({
                     driverName: currentUser ? currentUser.name : "Unknown",
@@ -463,7 +480,6 @@
             }
         }
 
-        // --- EXPORT TO EXCEL (Admin Only) ---
         function exportToExcel() {
             const data = JSON.parse(localStorage.getItem('returned_invoices')) || [];
             if (data.length === 0) {
