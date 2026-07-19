@@ -1,4 +1,900 @@
 <!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <link rel="manifest" href="manifest.json">
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Offline Return Collector</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    <style>
+
+        body { 
+
+            padding: 20px 10px; 
+
+            /* Dark Slate Gradient */
+
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+
+            min-height: 100vh;
+
+            color: #333;
+
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+        }
+
+        .login-card {
+
+            max-width: 400px;
+
+            margin: 50px auto;
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+
+    <!-- LOGIN SECTION -->
+
+    <div id="loginSection" class="card p-4 shadow login-card">
+
+        <h3 class="text-center mb-3">Login</h3>
+
+        <div class="mb-3">
+
+            <label class="form-label"><b>User ID (Name):</b></label>
+
+            <input type="text" id="loginId" class="form-control" placeholder="Enter ID (e.g. Shahbaz)">
+
+        </div>
+
+        <div class="mb-3">
+
+            <label class="form-label"><b>Password:</b></label>
+
+            <input type="password" id="loginPassword" class="form-control" placeholder="Enter Password">
+
+        </div>
+
+        <button class="btn btn-primary w-100" onclick="handleLogin()">Login</button>
+
+    </div>
+
+
+    <!-- MAIN APP CONTAINER (Hidden until login) -->
+
+    <div id="appContainer" class="container d-none">
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+
+            <span class="text-light fs-5">Driver: <b id="displayDriverName" class="text-warning"></b></span>
+
+            <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
+
+        </div>
+
+
+        <h2 class="text-center my-3 text-light">Return Invoice Collector</h2>
+
+        
+
+        <div class="card p-3 mb-3">
+
+            <div class="mb-3">
+
+                <label class="form-label"><b>1. Manual Return Invoice No:</b></label>
+
+                <input type="text" id="invoiceNo" class="form-control" placeholder="Enter Invoice Number">
+
+            </div>
+
+
+            <div class="mb-3">
+
+                <label class="form-label"><b>2. Select Brand:</b></label>
+
+                <select id="brand" class="form-select" onchange="onBrandChange()">
+
+                    <option value="">-- Choose Brand --</option>
+
+                    <option value="Canteen">Canteen</option>
+
+                    <option value="Trolley">Trolley</option>
+
+                </select>
+
+            </div>
+
+
+            <div class="mb-3">
+
+                <label class="form-label"><b>3. Select Branch:</b></label>
+
+                <select id="branch" class="form-select">
+
+                    <option value="">-- Choose Branch --</option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+
+        <div class="card p-3 mb-3 text-center">
+
+            <h5><b>4. Scan Barcode</b></h5>
+
+            <div id="reader"></div>
+
+            <button id="resumeCamBtn" class="btn btn-warning w-100 mt-2 d-none" onclick="resumeScanning()">📷 Resume Camera Scanner</button>
+
+            <input type="text" id="manualBarcode" class="form-control mt-2" placeholder="Or enter barcode manually">
+
+            <button class="btn btn-secondary btn-sm mt-2" onclick="lookupBarcode(document.getElementById('manualBarcode').value)">Lookup Manual Barcode</button>
+
+        </div>
+
+
+        <div class="card p-3 mb-3">
+
+            <h5><b>Item Details</b></h5>
+
+            <div class="mb-2">
+
+                <label>Item Name:</label>
+
+                <input type="text" id="itemName" class="form-control" readonly>
+
+            </div>
+
+            <div class="row">
+
+                <div class="col-6 mb-2">
+
+                    <label>Unit Price:</label>
+
+                    <input type="number" id="unitPrice" step="0.001" class="form-control" readonly>
+
+                </div>
+
+                <div class="col-6 mb-2">
+
+                    <label>Qty:</label>
+
+                    <input type="number" id="qty" class="form-control" value="1">
+
+                </div>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label>Production Date (Sent Date):</label>
+
+                <input type="date" id="prodDate" class="form-control">
+
+            </div>
+
+            <button class="btn btn-success w-100" onclick="addReturnItem()">Add Item to This Invoice</button>
+
+        </div>
+
+
+        <div class="card p-3 mb-3">
+
+            <h5>Current Invoice Items</h5>
+
+            <ul id="itemList" class="list-group mb-3"></ul>
+
+            <button class="btn btn-primary w-100" onclick="saveFullInvoice()">Finalize & Save Invoice</button>
+
+        </div>
+
+
+        <!-- ADMIN ACTIONS (Hidden for Drivers) -->
+
+        <div id="adminActions" class="card p-3 border-danger d-none">
+
+            <h5 class="text-danger">Admin Actions (Export Data)</h5>
+
+            <button class="btn btn-dark w-100 mb-2" onclick="exportToExcel()">Export All Data to Excel (CSV)</button>
+
+            <button class="btn btn-danger btn-sm w-100" onclick="clearDatabase()">Clear Saved Data</button>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+        // --- AUTHENTICATION & USER MANAGEMENT ---
+
+        const userDatabase = {
+
+            "shahbaz": { name: "Shahbaz", pass: "1234", role: "driver" },
+
+            "abdullah": { name: "Abdullah", pass: "1234", role: "driver" },
+
+            "rashid": { name: "Rashid", pass: "1234", role: "driver" },
+
+            "admin": { name: "Amir khan", pass: "admin123", role: "admin" }
+
+        };
+
+
+        let currentUser = null;
+
+
+        function handleLogin() {
+
+            const idInput = document.getElementById('loginId').value.trim().toLowerCase();
+
+            const passInput = document.getElementById('loginPassword').value.trim();
+
+
+            const user = userDatabase[idInput];
+
+
+            if (user && user.pass === passInput) {
+
+                currentUser = user;
+
+                document.getElementById('displayDriverName').textContent = user.name;
+
+                document.getElementById('loginSection').classList.add('d-none');
+
+                document.getElementById('appContainer').classList.remove('d-none');
+
+
+                // Show admin features ONLY for Admin role
+
+                if (user.role === 'admin') {
+
+                    document.getElementById('adminActions').classList.remove('d-none');
+
+                } else {
+
+                    document.getElementById('adminActions').classList.add('d-none');
+
+                }
+
+
+                // Initialize scanner after login
+
+                initScanner();
+
+            } else {
+
+                alert("Invalid User ID or Password!");
+
+            }
+
+        }
+
+
+        function logout() {
+
+            currentUser = null;
+
+            document.getElementById('loginId').value = "";
+
+            document.getElementById('loginPassword').value = "";
+
+            document.getElementById('appContainer').classList.add('d-none');
+
+            document.getElementById('loginSection').classList.remove('d-none');
+
+        }
+
+
+        // --- SUPERMARKET BEEP AUDIO GENERATOR ---
+
+        let audioCtx = null;
+
+        function playBeepSound() {
+
+            try {
+
+                if (!audioCtx) {
+
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+                }
+
+                if (audioCtx.state === 'suspended') {
+
+                    audioCtx.resume();
+
+                }
+
+                const osc = audioCtx.createOscillator();
+
+                const gain = audioCtx.createGain();
+
+                
+
+                osc.type = "sine";
+
+                osc.frequency.setValueAtTime(1760, audioCtx.currentTime);
+
+                
+
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.15);
+
+                
+
+                osc.connect(gain);
+
+                gain.connect(audioCtx.destination);
+
+                
+
+                osc.start();
+
+                osc.stop(audioCtx.currentTime + 0.15);
+
+            } catch(e) {
+
+                console.log("Audio failed:", e);
+
+            }
+
+        }
+
+
+        // --- PRODUCT DATABASE ---
+
+        const productDatabase = {
+
+            "7517846597753": { "name": "Beef Stroganoff with Penne Pasta", "canteenPrice": 1.625, "trolleyPrice": 1.575 },
+
+            "7517846597241": { "name": "Butter Chicken", "canteenPrice": 1.411, "trolleyPrice": 1.361 },
+
+            "7517846597142": { "name": "Chicken Caesar Salad", "canteenPrice": 1.268, "trolleyPrice": 1.268 },
+
+            "7517846598408": { "name": "Chicken Club Sandwich", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+
+            "7517846598392": { "name": "Chicken Shish Taouk Wrap", "canteenPrice": 0.78, "trolleyPrice": 0.78 },
+
+            "7517846598231": { "name": "Chipotle Egg Burger", "canteenPrice": 0.813, "trolleyPrice": 0.813 },
+
+            "7517846597180": { "name": "Classic Beef Burger", "canteenPrice": 1.294, "trolleyPrice": 1.294 },
+
+            "7517846598330": { "name": "Creamy Chicken Caesar Wrap", "canteenPrice": 0.748, "trolleyPrice": 0.748 },
+
+            "7517846598286": { "name": "Creamy Shrimp Caesar Salad", "canteenPrice": 1.347, "trolleyPrice": 1.347 },
+
+            "7517846598163": { "name": "Egg & Turkey Croissant", "canteenPrice": 0.813, "trolleyPrice": 0.813 },
+
+            "7517846598361": { "name": "Egg Wrap", "canteenPrice": 0.585, "trolleyPrice": 0.585 },
+
+            "7517846598378": { "name": "Falafel Wrap", "canteenPrice": 0.423, "trolleyPrice": 0.423 },
+
+            "7517846598309": { "name": "Feta Spinach Strawberry Salad", "canteenPrice": 0.618, "trolleyPrice": 0.618 },
+
+            "7517846597333": { "name": "Grilled Halloumi Sandwich", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+
+            "5904223118410": { "name": "Halloumi Sandwich", "canteenPrice": 0.618, "trolleyPrice": 0.618 },
+
+            "7517846598347": { "name": "Halloumi Wrap", "canteenPrice": 0.618, "trolleyPrice": 0.618 },
+
+            "7517846598385": { "name": "Labna Potato Wrap", "canteenPrice": 0.455, "trolleyPrice": 0.455 },
+
+            "5904223218417": { "name": "Labna Sandwich", "canteenPrice": 0.553, "trolleyPrice": 0.553 },
+
+            "7517846598293": { "name": "Maple Kale Salad", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+
+            "5904293218454": { "name": "Margherita Pizza", "canteenPrice": 0.585, "trolleyPrice": 0.585 },
+
+            "7517846598255": { "name": "Marinara Chicken Sandwich", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+
+            "7517846597906": { "name": "Mexican Nacho Salad OI", "canteenPrice": 1.008, "trolleyPrice": 0.958 },
+
+            "7517846598156": { "name": "Mix Cheese Croissant", "canteenPrice": 0.748, "trolleyPrice": 0.748 },
+
+            "5904223219452": { "name": "Mixed Cheese Pizza", "canteenPrice": 0.644, "trolleyPrice": 0.644 },
+
+            "7517846598187": { "name": "Mozzarella Melt", "canteenPrice": 0.65, "trolleyPrice": 0.65 },
+
+            "7517846598316": { "name": "Numou French Salad", "canteenPrice": 0.715, "trolleyPrice": 0.715 },
+
+            "7517846597975": { "name": "Numou Mini Cookies (5 pieces)", "canteenPrice": 0.65, "trolleyPrice": 0.65 },
+
+            "7517846598422": { "name": "Qaimar & Asal", "canteenPrice": 0.39, "trolleyPrice": 0.39 },
+
+            "7517846598279": { "name": "Santa Fe Chicken Salad", "canteenPrice": 1.625, "trolleyPrice": 1.51 },
+
+            "5904223118441": { "name": "Spinach Feta Pizza", "canteenPrice": 0.585, "trolleyPrice": 0.585 },
+
+            "7517846597678": { "name": "Tapenade Halloumi Sandwich", "canteenPrice": 1.04, "trolleyPrice": 1.04 },
+
+            "7517846598262": { "name": "Thai Chicken Salad", "canteenPrice": 1.625, "trolleyPrice": 1.38 },
+
+            "7517846598323": { "name": "Thai Salad Pot", "canteenPrice": 0.78, "trolleyPrice": 0.78 },
+
+            "5904223218400": { "name": "Turkey Cheddar Croissant", "canteenPrice": 0.644, "trolleyPrice": 0.644 },
+
+            "7517846598415": { "name": "Turkey Club Sandwich", "canteenPrice": 1.138, "trolleyPrice": 1.138 },
+
+            "7517846598149": { "name": "Turkey Croissant", "canteenPrice": 0.813, "trolleyPrice": 0.813 },
+
+            "7517846598224": { "name": "Turkey Melt", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+
+            "5901234184090": { "name": "Turkey Sandwich", "canteenPrice": 0.618, "trolleyPrice": 0.618 },
+
+            "7517846598439": { "name": "Turkey with Apricot Jam", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+
+            "7517846597630": { "name": "Turkey with Creamy Chutney Wrap", "canteenPrice": 1.203, "trolleyPrice": 1.202 },
+
+            "7517846598354": { "name": "Turkey Wrap", "canteenPrice": 0.748, "trolleyPrice": 0.748 }
+
+        };
+
+
+        // --- BRANCHES DATABASE ---
+
+        const branchDatabase = {
+
+            "Canteen": [
+
+                "Waha (Canteen)", "Zain Headquater (Canteen)", "Ministry of Electricity and Water Subhan (Canteen)",
+
+                "Public Authority of Housing Welfare shuwaikh (Canteen)", "Rihab (Canteen)", "Shuaiba Equate (Canteen)",
+
+                "Ahmadi Equate (Canteen)", "Awqaf Shuwaikh (Canteen)", "Kuwait University Khaldiya (Canteen)",
+
+                "Siddque (Canteen)", "Shadadiya KU Engineering (Canteen)", "International University of Kuwait(Canteen)",
+
+                "Jaber ali Stadium (Canteen)", "Kuwait City - Baitak Tower (Canteen)", "Kuwait City Mazaya tower (Canteen)",
+
+                "Shaab (Canteen)"
+
+            ],
+
+            "Trolley": [
+
+                "Jahra - Alfa (TR)", "Oyoon - Oula (TR)", "Sulaibiya (TR)", "Saad Al Abdullah - KNPC (TR)",
+
+                "Shuwaikh - Zain Hospital (TR)", "Zahra - KNPC (TR)", "Shuwaikh - Alfa (TR)", "Ministry of Public Works (TR)",
+
+                "Abdullah Al Salem (TR)", "Shuwaikh - Zain Head Quarter (TR)", "Abdally KNPC (TR)", "West Shuaiba - Oula (TR)",
+
+                "Mina Abdullah Alfa - 43 (TR)", "Mubarak Al Kabeer - Oula (TR)", "Ahmedi - Saka - Road 77 (TR)", "Hadiya - Alfa (TR)",
+
+                "Al Admi Arkan AlKuwait (TR)", "Abu Halifa - Alfa (TR)", "Rahal-Nuwaiseeb (TR)", "Mesayel - Alfa (TR)",
+
+                "Messila - Oula (TR)", "Sabah Al Salem - Oula 70 (TR)", "Sabah Al Salem Block 3 (TR)", "Sabah Club Qurain Blk 4 (TR)",
+
+                "Sabah Al Ahmed - KNPC140 (TR)", "Sabah Al Ahmed - KNPC149 (TR)", "Sabah Al Ahmed - KNPC142 (TR)", "Khaldiya - Oula (TR)",
+
+                "Qurtuba - Oula (TR)", "Hateen - Alfa (TR)", "Kaifan - Kuwait Club (TR)", "Shuhada - Oula (TR)", "Omariya - Oula (TR)",
+
+                "Abdullah Mubarak (TR)", "Shadadiya - Oula 52 (TR)", "Al Nasser Club (TR)", "Shadadiya - KU College of Admin(Education)  (TR)",
+
+                "Shadadiya - KU College of Arts (Literacy)  (TR)", "Shadadiya - KU Life Science (TR)", "Bnied Algar - Salam Hospital (TR)",
+
+                "Salmiya - AL Bidaa (TR)", "Salmiya Alfa (TR)", "Salmiya - Oula Block 10 (TR) - 71", "Salmiya - Oula Block 11 (TR) - 14",
+
+                "Adan Oula- 1187 (TR)", "Al Arabi Sport Club (TR)", "Bayan - Oula (TR)", "Amiri Hospital (TR)",
+
+                "Kuwait City - Kipco Tower (TR)", "Shaab - Alfa (TR)", "Mansouriyah - Alfa (TR)", "Daiya - Oula (TR)",
+
+                "Kuwait City - Baitak Tower (TR)", "Kuwait City - Trolley Ministry Complex (TR)", "Kuwait City - Central Bank of Kuwait (TR)",
+
+                "Kuwait City - NBK Head Office (TR)", "Jabriya - KU College of Medicine (TR)", "West Mishref - Oula  (TR)",
+
+                "Marina Crecent (TR)", "Al Arabi Sport Club"
+
+            ]
+
+        };
+
+
+        let currentInvoiceItems = [];
+
+        let isScannerPaused = false;
+
+        let html5QrcodeScanner = null;
+
+
+        function onBrandChange() {
+
+            resetItemDetails();
+
+            const brandSelect = document.getElementById('brand').value;
+
+            const branchSelect = document.getElementById('branch');
+
+            
+
+            branchSelect.innerHTML = '<option value="">-- Choose Branch --</option>';
+
+
+            if (brandSelect && branchDatabase[brandSelect]) {
+
+                branchDatabase[brandSelect].forEach(branchName => {
+
+                    const option = document.createElement('option');
+
+                    option.value = branchName;
+
+                    option.textContent = branchName;
+
+                    branchSelect.appendChild(option);
+
+                });
+
+            }
+
+        }
+
+
+        // --- SCANNER LOGIC ---
+
+        function initScanner() {
+
+            if (!html5QrcodeScanner) {
+
+                html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+
+                html5QrcodeScanner.render(onScanSuccess);
+
+            }
+
+        }
+
+
+        function onScanSuccess(decodedText, decodedResult) {
+
+            if (isScannerPaused) return;
+
+
+            playBeepSound();
+
+            document.getElementById('manualBarcode').value = decodedText;
+
+            pauseScanning();
+
+            lookupBarcode(decodedText);
+
+        }
+
+
+        function pauseScanning() {
+
+            try {
+
+                if (html5QrcodeScanner) {
+
+                    html5QrcodeScanner.pause(true);
+
+                    isScannerPaused = true;
+
+                    document.getElementById('resumeCamBtn').classList.remove('d-none');
+
+                }
+
+            } catch(e) {
+
+                console.log("Pause error:", e);
+
+            }
+
+        }
+
+
+        function resumeScanning() {
+
+            try {
+
+                if (html5QrcodeScanner) {
+
+                    html5QrcodeScanner.resume();
+
+                    isScannerPaused = false;
+
+                    document.getElementById('resumeCamBtn').classList.add('d-none');
+
+                }
+
+            } catch(e) {
+
+                console.log("Resume error:", e);
+
+            }
+
+        }
+
+
+        function lookupBarcode(barcode) {
+
+            const brand = document.getElementById('brand').value;
+
+            if (!brand) {
+
+                alert("Please select a Brand (Canteen or Trolley) first!");
+
+                return;
+
+            }
+
+
+            const cleanBarcode = barcode.trim();
+
+            const item = productDatabase[cleanBarcode];
+
+            
+
+            if (item) {
+
+                document.getElementById('itemName').value = item.name;
+
+                const price = (brand === "Canteen") ? item.canteenPrice : item.trolleyPrice;
+
+                document.getElementById('unitPrice').value = price;
+
+            } else {
+
+                alert("Product not found in local database (Barcode: " + cleanBarcode + ").");
+
+            }
+
+        }
+
+
+        function resetItemDetails() {
+
+            document.getElementById('itemName').value = "";
+
+            document.getElementById('unitPrice').value = "";
+
+            document.getElementById('manualBarcode').value = "";
+
+            document.getElementById('qty').value = "1";
+
+        }
+
+
+        function addReturnItem() {
+
+            const name = document.getElementById('itemName').value;
+
+            const price = document.getElementById('unitPrice').value;
+
+            const qty = document.getElementById('qty').value;
+
+            const prodDate = document.getElementById('prodDate').value;
+
+
+            if (!name || !qty || !prodDate) {
+
+                alert("Please scan an item, ensure quantity is set, and select a production date.");
+
+                return;
+
+            }
+
+
+            const itemData = { name, price: parseFloat(price), qty: parseInt(qty), prodDate };
+
+            currentInvoiceItems.push(itemData);
+
+            
+
+            updateItemsUI();
+
+            resetItemDetails();
+
+
+            if (isScannerPaused) {
+
+                resumeScanning();
+
+            }
+
+        }
+
+
+        function updateItemsUI() {
+
+            const list = document.getElementById('itemList');
+
+            list.innerHTML = "";
+
+            currentInvoiceItems.forEach((item, index) => {
+
+                const totalItemPrice = (item.price * item.qty).toFixed(3);
+
+                list.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">
+
+                    <div>
+
+                        <b>${item.name}</b><br>
+
+                        <small class="text-muted">Prod Date: ${item.prodDate} | Qty: ${item.qty} @ KWD ${item.price.toFixed(3)}</small>
+
+                    </div>
+
+                    <span><b>KWD ${totalItemPrice}</b></span>
+
+                </li>`;
+
+            });
+
+        }
+
+
+        function saveFullInvoice() {
+
+            const invoiceNo = document.getElementById('invoiceNo').value;
+
+            const brand = document.getElementById('brand').value;
+
+            const branch = document.getElementById('branch').value;
+
+
+            if (!invoiceNo || !brand || !branch || currentInvoiceItems.length === 0) {
+
+                alert("Please fill Invoice No, Brand, Branch, and add at least one item.");
+
+                return;
+
+            }
+
+
+            let allSavedReturns = JSON.parse(localStorage.getItem('returned_invoices')) || [];
+
+
+            // Add flat items including Driver Name
+
+            currentInvoiceItems.forEach(item => {
+
+                allSavedReturns.push({
+
+                    driverName: currentUser ? currentUser.name : "Unknown",
+
+                    invoiceNo,
+
+                    brand,
+
+                    branch,
+
+                    itemName: item.name,
+
+                    unitPrice: item.price,
+
+                    qty: item.qty,
+
+                    productionDate: item.prodDate,
+
+                    scanTimestamp: new Date().toLocaleString()
+
+                });
+
+            });
+
+
+            localStorage.setItem('returned_invoices', JSON.stringify(allSavedReturns));
+
+            
+
+            alert("Invoice Saved Successfully Offline!");
+
+            
+
+            currentInvoiceItems = [];
+
+            document.getElementById('invoiceNo').value = "";
+
+            document.getElementById('itemList').innerHTML = "";
+
+            resetItemDetails();
+
+
+            if (isScannerPaused) {
+
+                resumeScanning();
+
+            }
+
+        }
+
+
+        // --- EXPORT TO EXCEL (Admin Only) ---
+
+        function exportToExcel() {
+
+            const data = JSON.parse(localStorage.getItem('returned_invoices')) || [];
+
+            if (data.length === 0) {
+
+                alert("No data available to export.");
+
+                return;
+
+            }
+
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+
+            csvContent += "Driver Name,Return Date,Production Date,Scan Time,Invoice No,Brand,Branch,Item Name,Unit Price,Qty,Total Price\n";
+
+
+            data.forEach(row => {
+
+                const total = (row.unitPrice * row.qty).toFixed(3);
+
+                
+
+                const timeParts = row.scanTimestamp ? row.scanTimestamp.split(',') : ['', ''];
+
+                const returnDate = timeParts[0] ? timeParts[0].trim() : '';
+
+                const scanTime = timeParts[1] ? timeParts[1].trim() : row.scanTimestamp;
+
+                const driver = row.driverName || "N/A";
+
+
+                const line = `"${driver}","${returnDate}","${row.productionDate}","${scanTime}","${row.invoiceNo}","${row.brand}","${row.branch}","${row.itemName}",${row.unitPrice},${row.qty},${total}`;
+
+                csvContent += line + "\n";
+
+            });
+
+
+            const encodedUri = encodeURI(csvContent);
+
+            const link = document.createElement("a");
+
+            link.setAttribute("href", encodedUri);
+
+            link.setAttribute("download", `Return_Invoices_${new Date().toISOString().slice(0,10)}.csv`);
+
+            document.body.appendChild(link);
+
+            link.click();
+
+            document.body.removeChild(link);
+
+        }
+
+
+        function clearDatabase() {
+
+            if (confirm("Are you sure you want to clear ALL saved records? Make sure you exported first!")) {
+
+                localStorage.removeItem('returned_invoices');
+
+                alert("Database cleared.");
+
+            }
+
+        }
+
+    </script>
+
+</body>
+
+</html> <!DOCTYPE html>
 <html lang="en">
 <head>
     <link rel="manifest" href="manifest.json">
