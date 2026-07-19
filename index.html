@@ -10,32 +10,71 @@
     <style>
         body { 
             padding: 20px 10px; 
-            /* Dark Slate Gradient */
+            /* Professional dark slate background for the main app */
             background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
             min-height: 100vh;
             color: #333;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
+
+        /* Fullscreen Professional Login Wrapper (Works 100% Offline) */
+        .login-screen-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #111827;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(31, 41, 55, 0.5) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, rgba(17, 24, 39, 1) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, rgba(14, 116, 144, 0.15) 0, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(15, 23, 42, 1) 0, transparent 50%), 
+                radial-gradient(at 100% 100%, rgba(15, 118, 110, 0.1) 0, transparent 50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 15px;
+        }
+
+        /* Premium frosted glass container card */
         .login-card {
+            width: 100%;
             max-width: 400px;
-            margin: 50px auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        .login-card h3 {
+            color: #111827;
+            font-weight: 700;
+            letter-spacing: -0.5px;
         }
     </style>
 </head>
 <body>
 
     <!-- LOGIN SECTION -->
-    <div id="loginSection" class="card p-4 shadow login-card">
-        <h3 class="text-center mb-3">Login</h3>
-        <div class="mb-3">
-            <label class="form-label"><b>User ID (Name):</b></label>
-            <input type="text" id="loginId" class="form-control" placeholder="Enter ID (e.g. Shahbaz)">
+    <div id="loginSection" class="login-screen-wrapper">
+        <div class="card shadow login-card">
+            <h3 class="text-center mb-1">Return Collector</h3>
+            <p class="text-center text-muted small mb-4">Please log in to manage return invoices</p>
+            
+            <div class="mb-3">
+                <label class="form-label text-secondary small"><b>User ID (Name):</b></label>
+                <input type="text" id="loginId" class="form-control form-control-lg" placeholder="e.g. Shahbaz" style="font-size: 0.95rem;">
+            </div>
+            <div class="mb-4">
+                <label class="form-label text-secondary small"><b>Password:</b></label>
+                <input type="password" id="loginPassword" class="form-control form-control-lg" placeholder="••••••••" style="font-size: 0.95rem;">
+            </div>
+            <button class="btn btn-primary btn-lg w-100 shadow-sm" onclick="handleLogin()" style="background: #0e7490; border: none; font-size: 1rem; font-weight: 600;">Sign In</button>
         </div>
-        <div class="mb-3">
-            <label class="form-label"><b>Password:</b></label>
-            <input type="password" id="loginPassword" class="form-control" placeholder="Enter Password">
-        </div>
-        <button class="btn btn-primary w-100" onclick="handleLogin()">Login</button>
     </div>
 
     <!-- MAIN APP CONTAINER (Hidden until login) -->
@@ -64,7 +103,6 @@
 
             <div class="mb-3">
                 <label class="form-label"><b>3. Search/Select Branch:</b></label>
-                <!-- FIXED: Explicit connection mapping attributes -->
                 <input type="text" id="branch" class="form-control" placeholder="Type characters to search branch..." list="branchOptions">
                 <datalist id="branchOptions"></datalist>
             </div>
@@ -81,7 +119,6 @@
             <h5><b>Item Details</b></h5>
             <div class="mb-2">
                 <label>Item Name:</label>
-                <!-- FIXED: Listening properly to change event when clicking a selection drop option -->
                 <input type="text" id="itemName" class="form-control" placeholder="Type characters to search item..." list="itemOptions" onchange="onItemSearchChange()" oninput="onItemSearchChange()">
                 <datalist id="itemOptions"></datalist>
             </div>
@@ -108,7 +145,7 @@
             <button class="btn btn-primary w-100" onclick="saveFullInvoice()">Finalize & Save Invoice</button>
         </div>
 
-        <!-- ADMIN ACTIONS (Hidden for Drivers) -->
+        <!-- ADMIN ACTIONS -->
         <div id="adminActions" class="card p-3 border-danger d-none">
             <h5 class="text-danger">Admin Actions (Export Data)</h5>
             <button class="btn btn-dark w-100 mb-2" onclick="exportToExcel()">Export All Data to Excel (CSV)</button>
@@ -161,9 +198,8 @@
             document.getElementById('loginSection').classList.remove('d-none');
         }
 
-        // --- SUPERMARKET BEEP AUDIO GENERATOR ---
+        // --- AUDIO GENERATOR ---
         let audioCtx = null;
-        
         function initAudioContext() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -178,16 +214,12 @@
                 initAudioContext();
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-                 
                 osc.type = "sine";
                 osc.frequency.setValueAtTime(1200, audioCtx.currentTime); 
-                 
                 gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.12);
-                 
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
-                 
                 osc.start();
                 osc.stop(audioCtx.currentTime + 0.12);
             } catch(e) {
@@ -276,7 +308,7 @@
         let lastScanTime = 0;
 
         window.addEventListener('DOMContentLoaded', () => {
-            // FIXED: Populate search bar list container completely on start
+            // Pre-populate Item Name dropdown options on initialization
             const itemOptions = document.getElementById('itemOptions');
             itemOptions.innerHTML = "";
             const uniqueItems = new Set();
@@ -292,6 +324,7 @@
             }, { once: false });
         });
 
+        // Brand Change Selection Link Fix
         function onBrandChange() {
             resetItemDetails();
             const brandSelect = document.getElementById('brand').value;
@@ -310,7 +343,7 @@
             }
         }
 
-        // FIXED: Re-mapped extraction logic to trigger properly during active manual string match selections
+        // Item Dropdown Selection Link Fix
         function onItemSearchChange() {
             const typedName = document.getElementById('itemName').value.trim();
             const brand = document.getElementById('brand').value;
@@ -332,7 +365,7 @@
             }
         }
 
-        // --- FAST SCANNER LOGIC ---
+        // --- SCANNER LOGIC ---
         function initScanner() {
             if (!html5QrcodeScanner) {
                 html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 25, qrbox: 250 });
@@ -345,7 +378,6 @@
             if (decodedText === lastScannedBarcode && (now - lastScanTime) < 1200) {
                 return; 
             }
-
             lastScannedBarcode = decodedText;
             lastScanTime = now;
 
@@ -368,8 +400,6 @@
                 document.getElementById('itemName').value = item.name;
                 const price = (brand === "Canteen") ? item.canteenPrice : item.trolleyPrice;
                 document.getElementById('unitPrice').value = price;
-            } else {
-                console.log("Product not found: " + cleanBarcode);
             }
         }
 
@@ -387,7 +417,7 @@
             const prodDate = document.getElementById('prodDate').value;
 
             if (!name || !price || !qty || !prodDate) {
-                alert("Please select/scan a valid item, ensure price/quantity is set, and select a production date.");
+                alert("Please select/scan a valid item, check price/qty, and provide a production date.");
                 return;
             }
 
@@ -463,7 +493,6 @@
 
             data.forEach(row => {
                 const total = (row.unitPrice * row.qty).toFixed(3);
-                 
                 const timeParts = row.scanTimestamp ? row.scanTimestamp.split(',') : ['', ''];
                 const returnDate = timeParts[0] ? timeParts[0].trim() : '';
                 const scanTime = timeParts[1] ? timeParts[1].trim() : row.scanTimestamp;
