@@ -10,32 +10,71 @@
     <style>
         body { 
             padding: 20px 10px; 
-            /* Dark Slate Gradient */
             background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
             min-height: 100vh;
             color: #333;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
+
+        /* Fullscreen Professional Login Wrapper */
+        .login-screen-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #111827;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(31, 41, 55, 0.5) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, rgba(17, 24, 39, 1) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, rgba(14, 116, 144, 0.15) 0, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(15, 23, 42, 1) 0, transparent 50%), 
+                radial-gradient(at 100% 100%, rgba(15, 118, 110, 0.1) 0, transparent 50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 15px;
+        }
+
+        /* Premium frosted glass container card */
         .login-card {
+            width: 100%;
             max-width: 400px;
-            margin: 50px auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        .login-card h3 {
+            color: #111827;
+            font-weight: 700;
+            letter-spacing: -0.5px;
         }
     </style>
 </head>
 <body>
 
     <!-- LOGIN SECTION -->
-    <div id="loginSection" class="card p-4 shadow login-card">
-        <h3 class="text-center mb-3">Login</h3>
-        <div class="mb-3">
-            <label class="form-label"><b>User ID (Name):</b></label>
-            <input type="text" id="loginId" class="form-control" placeholder="Enter ID (e.g. Shahbaz)">
+    <div id="loginSection" class="login-screen-wrapper">
+        <div class="card shadow login-card">
+            <h3 class="text-center mb-1">Return Collector</h3>
+            <p class="text-center text-muted small mb-4">Please log in to manage return invoices</p>
+            
+            <div class="mb-3">
+                <label class="form-label text-secondary small"><b>User ID (Name):</b></label>
+                <!-- Added autocapitalize and autocorrect fixes for mobile keyboards -->
+                <input type="text" id="loginId" class="form-control form-control-lg" placeholder="e.g. shahbaz" autocapitalize="none" autocorrect="off" style="font-size: 0.95rem;">
+            </div>
+            <div class="mb-4">
+                <label class="form-label text-secondary small"><b>Password:</b></label>
+                <input type="password" id="loginPassword" class="form-control form-control-lg" placeholder="••••••••" style="font-size: 0.95rem;">
+            </div>
+            <button class="btn btn-primary btn-lg w-100 shadow-sm" onclick="handleLogin()" style="background: #0e7490; border: none; font-size: 1rem; font-weight: 600;">Sign In</button>
         </div>
-        <div class="mb-3">
-            <label class="form-label"><b>Password:</b></label>
-            <input type="password" id="loginPassword" class="form-control" placeholder="Enter Password">
-        </div>
-        <button class="btn btn-primary w-100" onclick="handleLogin()">Login</button>
     </div>
 
     <!-- MAIN APP CONTAINER (Hidden until login) -->
@@ -64,15 +103,14 @@
 
             <div class="mb-3">
                 <label class="form-label"><b>3. Search/Select Branch:</b></label>
-                <input type="text" id="branch" class="form-control" placeholder="Type characters to search branch..." list="branchOptions">
+                <input type="text" id="branch" class="form-control" placeholder="Type characters to search branch..." list="branchOptions" onchange="onBranchSelectChange()" autocomplete="off">
                 <datalist id="branchOptions"></datalist>
             </div>
         </div>
 
         <div class="card p-3 mb-3 text-center">
-            <h5><b>4. Scan Barcode</b></h5>
+            <h5><b>4. Fast Scan Barcode</b></h5>
             <div id="reader"></div>
-            <button id="resumeCamBtn" class="btn btn-warning w-100 mt-2 d-none" onclick="resumeScanning()">📷 Resume Camera Scanner</button>
             <input type="text" id="manualBarcode" class="form-control mt-2" placeholder="Or enter barcode manually">
             <button class="btn btn-secondary btn-sm mt-2" onclick="lookupBarcode(document.getElementById('manualBarcode').value)">Lookup Manual Barcode</button>
         </div>
@@ -81,7 +119,7 @@
             <h5><b>Item Details</b></h5>
             <div class="mb-2">
                 <label>Item Name:</label>
-                <input type="text" id="itemName" class="form-control" placeholder="Type characters to search item..." list="itemOptions" oninput="onItemSearchChange()">
+                <input type="text" id="itemName" class="form-control" placeholder="Type characters to search item..." list="itemOptions" onchange="onItemSearchChange()" autocomplete="off">
                 <datalist id="itemOptions"></datalist>
             </div>
             <div class="row">
@@ -104,10 +142,17 @@
         <div class="card p-3 mb-3">
             <h5>Current Invoice Items</h5>
             <ul id="itemList" class="list-group mb-3"></ul>
+            
+            <!-- LIVE DRIVER TOTAL AMOUNT TRACKER CARD -->
+            <div class="p-3 mb-3 bg-light border rounded d-flex justify-content-between align-items-center">
+                <span class="fs-5 text-dark"><b>Invoice Total Amount:</b></span>
+                <span class="fs-4 text-success"><b>KWD <span id="invoiceTotalDisplay">0.000</span></b></span>
+            </div>
+
             <button class="btn btn-primary w-100" onclick="saveFullInvoice()">Finalize & Save Invoice</button>
         </div>
 
-        <!-- ADMIN ACTIONS (Hidden for Drivers) -->
+        <!-- ADMIN ACTIONS -->
         <div id="adminActions" class="card p-3 border-danger d-none">
             <h5 class="text-danger">Admin Actions (Export Data)</h5>
             <button class="btn btn-dark w-100 mb-2" onclick="exportToExcel()">Export All Data to Excel (CSV)</button>
@@ -127,25 +172,26 @@
         let currentUser = null;
 
         function handleLogin() {
+            // Added aggressive trim() to remove accidental hidden spaces from copy/paste or mobile keyboard predictions
             const idInput = document.getElementById('loginId').value.trim().toLowerCase();
             const passInput = document.getElementById('loginPassword').value.trim();
 
             const user = userDatabase[idInput];
 
             if (user && user.pass === passInput) {
+                initAudioContext();
+
                 currentUser = user;
                 document.getElementById('displayDriverName').textContent = user.name;
                 document.getElementById('loginSection').classList.add('d-none');
                 document.getElementById('appContainer').classList.remove('d-none');
 
-                // Show admin features ONLY for Admin role
                 if (user.role === 'admin') {
                     document.getElementById('adminActions').classList.remove('d-none');
                 } else {
                     document.getElementById('adminActions').classList.add('d-none');
                 }
 
-                // Initialize scanner after login
                 initScanner();
             } else {
                 alert("Invalid User ID or Password!");
@@ -160,32 +206,32 @@
             document.getElementById('loginSection').classList.remove('d-none');
         }
 
-        // --- SUPERMARKET BEEP AUDIO GENERATOR ---
+        // --- AUDIO GENERATOR ---
         let audioCtx = null;
+        function initAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
         function playBeepSound() {
             try {
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
+                initAudioContext();
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-                 
                 osc.type = "sine";
-                osc.frequency.setValueAtTime(1760, audioCtx.currentTime);
-                 
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.15);
-                 
+                osc.frequency.setValueAtTime(1200, audioCtx.currentTime); 
+                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.12);
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
-                 
                 osc.start();
-                osc.stop(audioCtx.currentTime + 0.15);
+                osc.stop(audioCtx.currentTime + 0.12);
             } catch(e) {
-                console.log("Audio failed:", e);
+                console.log("Audio feedback failed:", e);
             }
         }
 
@@ -265,12 +311,18 @@
         };
 
         let currentInvoiceItems = [];
-        let isScannerPaused = false;
         let html5QrcodeScanner = null;
+        let lastScannedBarcode = null;
+        let lastScanTime = 0;
 
-        // Automatically load item lookup selections on startup
         window.addEventListener('DOMContentLoaded', () => {
+            populateItemsDatalist();
+            document.body.addEventListener('click', () => { initAudioContext(); }, { once: false });
+        });
+
+        function populateItemsDatalist() {
             const itemOptions = document.getElementById('itemOptions');
+            itemOptions.innerHTML = "";
             const uniqueItems = new Set();
             Object.values(productDatabase).forEach(item => uniqueItems.add(item.name));
             uniqueItems.forEach(itemName => {
@@ -278,7 +330,7 @@
                 option.value = itemName;
                 itemOptions.appendChild(option);
             });
-        });
+        }
 
         function onBrandChange() {
             resetItemDetails();
@@ -298,19 +350,31 @@
             }
         }
 
-        // Automatic matching when someone types or clicks a suggested item name
+        function onBranchSelectChange() {
+            const branchInput = document.getElementById('branch');
+            const val = branchInput.value.trim();
+            if (val) {
+                branchInput.value = val;
+            }
+        }
+
         function onItemSearchChange() {
-            const typedName = document.getElementById('itemName').value.trim();
+            const itemInput = document.getElementById('itemName');
+            const typedName = itemInput.value.trim();
             const brand = document.getElementById('brand').value;
             
-            if (!brand && typedName !== "") {
-                alert("Please select a Brand first to fetch the correct price!");
-                document.getElementById('itemName').value = "";
-                return;
-            }
+            if (!typedName) return;
 
             const matchedEntry = Object.entries(productDatabase).find(([barcode, data]) => data.name === typedName);
+            
             if (matchedEntry) {
+                if (!brand) {
+                    alert("Please select a Brand first to fetch the correct price!");
+                    itemInput.value = "";
+                    return;
+                }
+                itemInput.value = typedName;
+                
                 const itemData = matchedEntry[1];
                 const price = (brand === "Canteen") ? itemData.canteenPrice : itemData.trolleyPrice;
                 document.getElementById('unitPrice').value = price;
@@ -321,42 +385,22 @@
         // --- SCANNER LOGIC ---
         function initScanner() {
             if (!html5QrcodeScanner) {
-                html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+                html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 25, qrbox: 250 });
                 html5QrcodeScanner.render(onScanSuccess);
             }
         }
 
         function onScanSuccess(decodedText, decodedResult) {
-            if (isScannerPaused) return;
+            const now = Date.now();
+            if (decodedText === lastScannedBarcode && (now - lastScanTime) < 1200) {
+                return; 
+            }
+            lastScannedBarcode = decodedText;
+            lastScanTime = now;
 
             playBeepSound();
             document.getElementById('manualBarcode').value = decodedText;
-            pauseScanning();
             lookupBarcode(decodedText);
-        }
-
-        function pauseScanning() {
-            try {
-                if (html5QrcodeScanner) {
-                    html5QrcodeScanner.pause(true);
-                    isScannerPaused = true;
-                    document.getElementById('resumeCamBtn').classList.remove('d-none');
-                }
-            } catch(e) {
-                console.log("Pause error:", e);
-            }
-        }
-
-        function resumeScanning() {
-            try {
-                if (html5QrcodeScanner) {
-                    html5QrcodeScanner.resume();
-                    isScannerPaused = false;
-                    document.getElementById('resumeCamBtn').classList.add('d-none');
-                }
-            } catch(e) {
-                console.log("Resume error:", e);
-            }
         }
 
         function lookupBarcode(barcode) {
@@ -373,8 +417,6 @@
                 document.getElementById('itemName').value = item.name;
                 const price = (brand === "Canteen") ? item.canteenPrice : item.trolleyPrice;
                 document.getElementById('unitPrice').value = price;
-            } else {
-                alert("Product not found in local database (Barcode: " + cleanBarcode + ").");
             }
         }
 
@@ -392,7 +434,7 @@
             const prodDate = document.getElementById('prodDate').value;
 
             if (!name || !price || !qty || !prodDate) {
-                alert("Please select/scan a valid item, ensure price/quantity is set, and select a production date.");
+                alert("Please select/scan a valid item, check price/qty, and provide a production date.");
                 return;
             }
 
@@ -401,25 +443,36 @@
              
             updateItemsUI();
             resetItemDetails();
-
-            if (isScannerPaused) {
-                resumeScanning();
-            }
+            lastScannedBarcode = null;
         }
 
         function updateItemsUI() {
             const list = document.getElementById('itemList');
             list.innerHTML = "";
+            let runningInvoiceTotal = 0;
+
             currentInvoiceItems.forEach((item, index) => {
-                const totalItemPrice = (item.price * item.qty).toFixed(3);
+                const totalItemPrice = item.price * item.qty;
+                runningInvoiceTotal += totalItemPrice;
+
                 list.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">
                     <div>
                         <b>${item.name}</b><br>
                         <small class="text-muted">Prod Date: ${item.prodDate} | Qty: ${item.qty} @ KWD ${item.price.toFixed(3)}</small>
                     </div>
-                    <span><b>KWD ${totalItemPrice}</b></span>
+                    <div class="text-end">
+                        <span><b>KWD ${totalItemPrice.toFixed(3)}</b></span><br>
+                        <button class="btn btn-sm btn-link text-danger p-0" style="font-size:0.8rem;" onclick="removeItemFromInvoice(${index})">Remove</button>
+                    </div>
                 </li>`;
             });
+
+            document.getElementById('invoiceTotalDisplay').textContent = runningInvoiceTotal.toFixed(3);
+        }
+
+        function removeItemFromInvoice(index) {
+            currentInvoiceItems.splice(index, 1);
+            updateItemsUI();
         }
 
         function saveFullInvoice() {
@@ -434,7 +487,6 @@
 
             let allSavedReturns = JSON.parse(localStorage.getItem('returned_invoices')) || [];
 
-            // Add flat items including Driver Name
             currentInvoiceItems.forEach(item => {
                 allSavedReturns.push({
                     driverName: currentUser ? currentUser.name : "Unknown",
@@ -455,15 +507,13 @@
              
             currentInvoiceItems = [];
             document.getElementById('invoiceNo').value = "";
+            document.getElementById('branch').value = ""; 
             document.getElementById('itemList').innerHTML = "";
+            document.getElementById('invoiceTotalDisplay').textContent = "0.000";
             resetItemDetails();
-
-            if (isScannerPaused) {
-                resumeScanning();
-            }
+            lastScannedBarcode = null;
         }
 
-        // --- EXPORT TO EXCEL (Admin Only) ---
         function exportToExcel() {
             const data = JSON.parse(localStorage.getItem('returned_invoices')) || [];
             if (data.length === 0) {
@@ -476,7 +526,6 @@
 
             data.forEach(row => {
                 const total = (row.unitPrice * row.qty).toFixed(3);
-                 
                 const timeParts = row.scanTimestamp ? row.scanTimestamp.split(',') : ['', ''];
                 const returnDate = timeParts[0] ? timeParts[0].trim() : '';
                 const scanTime = timeParts[1] ? timeParts[1].trim() : row.scanTimestamp;
