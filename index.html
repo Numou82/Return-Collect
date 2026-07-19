@@ -46,7 +46,7 @@
         </div>
 
         <h2 class="text-center my-3 text-light">Return Invoice Collector</h2>
-        
+         
         <div class="card p-3 mb-3">
             <div class="mb-3">
                 <label class="form-label"><b>1. Manual Return Invoice No:</b></label>
@@ -63,10 +63,9 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label"><b>3. Select Branch:</b></label>
-                <select id="branch" class="form-select">
-                    <option value="">-- Choose Branch --</option>
-                </select>
+                <label class="form-label"><b>3. Search/Select Branch:</b></label>
+                <input type="text" id="branch" class="form-control" placeholder="Type characters to search branch..." list="branchOptions">
+                <datalist id="branchOptions"></datalist>
             </div>
         </div>
 
@@ -82,7 +81,8 @@
             <h5><b>Item Details</b></h5>
             <div class="mb-2">
                 <label>Item Name:</label>
-                <input type="text" id="itemName" class="form-control" readonly>
+                <input type="text" id="itemName" class="form-control" placeholder="Type characters to search item..." list="itemOptions" oninput="onItemSearchChange()">
+                <datalist id="itemOptions"></datalist>
             </div>
             <div class="row">
                 <div class="col-6 mb-2">
@@ -172,16 +172,16 @@
                 }
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-                
+                 
                 osc.type = "sine";
                 osc.frequency.setValueAtTime(1760, audioCtx.currentTime);
-                
+                 
                 gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.15);
-                
+                 
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
-                
+                 
                 osc.start();
                 osc.stop(audioCtx.currentTime + 0.15);
             } catch(e) {
@@ -253,8 +253,8 @@
                 "Messila - Oula (TR)", "Sabah Al Salem - Oula 70 (TR)", "Sabah Al Salem Block 3 (TR)", "Sabah Club Qurain Blk 4 (TR)",
                 "Sabah Al Ahmed - KNPC140 (TR)", "Sabah Al Ahmed - KNPC149 (TR)", "Sabah Al Ahmed - KNPC142 (TR)", "Khaldiya - Oula (TR)",
                 "Qurtuba - Oula (TR)", "Hateen - Alfa (TR)", "Kaifan - Kuwait Club (TR)", "Shuhada - Oula (TR)", "Omariya - Oula (TR)",
-                "Abdullah Mubarak (TR)", "Shadadiya - Oula 52 (TR)", "Al Nasser Club (TR)", "Shadadiya - KU College of Admin(Education)  (TR)",
-                "Shadadiya - KU College of Arts (Literacy)  (TR)", "Shadadiya - KU Life Science (TR)", "Bnied Algar - Salam Hospital (TR)",
+                "Abdullah Mubarak (TR)", "Shadadiya - Oula 52 (TR)", "Al Nasser Club (TR)", "Shadadiya - KU College of Admin(Education)   (TR)",
+                "Shadadiya - KU College of Arts (Literacy)   (TR)", "Shadadiya - KU Life Science (TR)", "Bnied Algar - Salam Hospital (TR)",
                 "Salmiya - AL Bidaa (TR)", "Salmiya Alfa (TR)", "Salmiya - Oula Block 10 (TR) - 71", "Salmiya - Oula Block 11 (TR) - 14",
                 "Adan Oula- 1187 (TR)", "Al Arabi Sport Club (TR)", "Bayan - Oula (TR)", "Amiri Hospital (TR)",
                 "Kuwait City - Kipco Tower (TR)", "Shaab - Alfa (TR)", "Mansouriyah - Alfa (TR)", "Daiya - Oula (TR)",
@@ -268,20 +268,53 @@
         let isScannerPaused = false;
         let html5QrcodeScanner = null;
 
+        // Automatically load item lookup selections on startup
+        window.addEventListener('DOMContentLoaded', () => {
+            const itemOptions = document.getElementById('itemOptions');
+            const uniqueItems = new Set();
+            Object.values(productDatabase).forEach(item => uniqueItems.add(item.name));
+            uniqueItems.forEach(itemName => {
+                const option = document.createElement('option');
+                option.value = itemName;
+                itemOptions.appendChild(option);
+            });
+        });
+
         function onBrandChange() {
             resetItemDetails();
             const brandSelect = document.getElementById('brand').value;
-            const branchSelect = document.getElementById('branch');
-            
-            branchSelect.innerHTML = '<option value="">-- Choose Branch --</option>';
+            const branchInput = document.getElementById('branch');
+            const branchOptions = document.getElementById('branchOptions');
+             
+            branchInput.value = "";
+            branchOptions.innerHTML = "";
 
             if (brandSelect && branchDatabase[brandSelect]) {
                 branchDatabase[brandSelect].forEach(branchName => {
                     const option = document.createElement('option');
                     option.value = branchName;
-                    option.textContent = branchName;
-                    branchSelect.appendChild(option);
+                    branchOptions.appendChild(option);
                 });
+            }
+        }
+
+        // Automatic matching when someone types or clicks a suggested item name
+        function onItemSearchChange() {
+            const typedName = document.getElementById('itemName').value.trim();
+            const brand = document.getElementById('brand').value;
+            
+            if (!brand && typedName !== "") {
+                alert("Please select a Brand first to fetch the correct price!");
+                document.getElementById('itemName').value = "";
+                return;
+            }
+
+            const matchedEntry = Object.entries(productDatabase).find(([barcode, data]) => data.name === typedName);
+            if (matchedEntry) {
+                const itemData = matchedEntry[1];
+                const price = (brand === "Canteen") ? itemData.canteenPrice : itemData.trolleyPrice;
+                document.getElementById('unitPrice').value = price;
+                document.getElementById('manualBarcode').value = matchedEntry[0];
             }
         }
 
@@ -335,7 +368,7 @@
 
             const cleanBarcode = barcode.trim();
             const item = productDatabase[cleanBarcode];
-            
+             
             if (item) {
                 document.getElementById('itemName').value = item.name;
                 const price = (brand === "Canteen") ? item.canteenPrice : item.trolleyPrice;
@@ -358,14 +391,14 @@
             const qty = document.getElementById('qty').value;
             const prodDate = document.getElementById('prodDate').value;
 
-            if (!name || !qty || !prodDate) {
-                alert("Please scan an item, ensure quantity is set, and select a production date.");
+            if (!name || !price || !qty || !prodDate) {
+                alert("Please select/scan a valid item, ensure price/quantity is set, and select a production date.");
                 return;
             }
 
             const itemData = { name, price: parseFloat(price), qty: parseInt(qty), prodDate };
             currentInvoiceItems.push(itemData);
-            
+             
             updateItemsUI();
             resetItemDetails();
 
@@ -417,9 +450,9 @@
             });
 
             localStorage.setItem('returned_invoices', JSON.stringify(allSavedReturns));
-            
+             
             alert("Invoice Saved Successfully Offline!");
-            
+             
             currentInvoiceItems = [];
             document.getElementById('invoiceNo').value = "";
             document.getElementById('itemList').innerHTML = "";
@@ -443,7 +476,7 @@
 
             data.forEach(row => {
                 const total = (row.unitPrice * row.qty).toFixed(3);
-                
+                 
                 const timeParts = row.scanTimestamp ? row.scanTimestamp.split(',') : ['', ''];
                 const returnDate = timeParts[0] ? timeParts[0].trim() : '';
                 const scanTime = timeParts[1] ? timeParts[1].trim() : row.scanTimestamp;
