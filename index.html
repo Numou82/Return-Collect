@@ -181,18 +181,21 @@
                 <span class="fs-4 text-success"><b>KWD <span id="invoiceTotalDisplay">0.000</span></b></span>
             </div>
 
-            <button class="btn btn-primary w-100" onclick="saveFullInvoice()">Finalize & Save Invoice</button>
+            <button class="btn btn-primary w-100" id="saveInvoiceBtn" onclick="saveFullInvoice()">Finalize & Save Invoice</button>
         </div>
 
         <!-- ADMIN ACTIONS -->
         <div id="adminActions" class="card p-3 border-danger d-none">
             <h5 class="text-danger">Admin Actions (Export Data)</h5>
-            <button class="btn btn-dark w-100 mb-2" onclick="exportToExcel()">Export All Data to Excel (CSV)</button>
-            <button class="btn btn-danger btn-sm w-100" onclick="clearDatabase()">Clear Saved Data</button>
+            <button class="btn btn-dark w-100 mb-2" id="exportBtn" onclick="exportToExcel()">Export All Data to Excel (CSV)</button>
         </div>
     </div>
 
     <script>
+        // --- GOOGLE SHEETS CENTRAL CLOUD API URL ---
+        // REPLACE THE STRING BELOW WITH YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL
+        const GOOGLE_SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE";
+
         // --- AUTHENTICATION & USER MANAGEMENT ---
         const userDatabase = {
             "shahbaz": { name: "Shahbaz", pass: "1234", role: "driver" },
@@ -364,7 +367,7 @@
             document.getElementById('branchSuggestions').style.display = "none";
         }
 
-        // --- CUSTOM TOUCH-FRIENDLY AUTOCOMPLETE FOR BRANCHES ---
+        // --- CUSTOM AUTOCOMPLETE FOR BRANCHES ---
         function filterBranchOptions() {
             const brand = document.getElementById('brand').value;
             const inputVal = document.getElementById('branch').value.toLowerCase();
@@ -403,7 +406,7 @@
             }
         }
 
-        // --- CUSTOM TOUCH-FRIENDLY AUTOCOMPLETE FOR ITEMS ---
+        // --- CUSTOM AUTOCOMPLETE FOR ITEMS ---
         function filterItemOptions() {
             const inputVal = document.getElementById('itemName').value.toLowerCase();
             const suggestionsContainer = document.getElementById('itemSuggestions');
@@ -547,6 +550,7 @@
             updateItemsUI();
         }
 
+        // --- CENTRAL CLOUD UPLOAD VIA GOOGLE APPS SCRIPT ---
         function saveFullInvoice() {
             const invoiceNo = document.getElementById('invoiceNo').value;
             const brand = document.getElementById('brand').value;
@@ -557,70 +561,93 @@
                 return;
             }
 
-            let allSavedReturns = JSON.parse(localStorage.getItem('returned_invoices')) || [];
+            const saveBtn = document.getElementById('saveInvoiceBtn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = "Uploading Data to Cloud...";
+
+            let payload = [];
+            const now = new Date();
+            const dateStr = now.toLocaleDateString();
+            const timeStr = now.toLocaleTimeString();
 
             currentInvoiceItems.forEach(item => {
-                allSavedReturns.push({
+                payload.push({
                     driverName: currentUser ? currentUser.name : "Unknown",
-                    invoiceNo,
-                    brand,
-                    branch,
+                    returnDate: dateStr,
+                    productionDate: item.prodDate,
+                    scanTime: timeStr,
+                    invoiceNo: invoiceNo,
+                    brand: brand,
+                    branch: branch,
                     itemName: item.name,
                     unitPrice: item.price,
                     qty: item.qty,
-                    productionDate: item.prodDate,
-                    scanTimestamp: new Date().toLocaleString()
+                    totalPrice: (item.price * item.qty).toFixed(3)
                 });
             });
 
-            localStorage.setItem('returned_invoices', JSON.stringify(allSavedReturns));
-             
-            alert("Invoice Saved Successfully Offline!");
-             
-            currentInvoiceItems = [];
-            document.getElementById('invoiceNo').value = "";
-            document.getElementById('branch').value = ""; 
-            document.getElementById('itemList').innerHTML = "";
-            document.getElementById('invoiceTotalDisplay').textContent = "0.000";
-            resetItemDetails();
-            lastScannedBarcode = null;
-        }
-
-        function exportToExcel() {
-            const data = JSON.parse(localStorage.getItem('returned_invoices')) || [];
-            if (data.length === 0) {
-                alert("No data available to export.");
-                return;
-            }
-
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Driver Name,Return Date,Production Date,Scan Time,Invoice No,Brand,Branch,Item Name,Unit Price,Qty,Total Price\n";
-
-            data.forEach(row => {
-                const total = (row.unitPrice * row.qty).toFixed(3);
-                const timeParts = row.scanTimestamp ? row.scanTimestamp.split(',') : ['', ''];
-                const returnDate = timeParts[0] ? timeParts[0].trim() : '';
-                const scanTime = timeParts[1] ? timeParts[1].trim() : row.scanTimestamp;
-                const driver = row.driverName || "N/A";
-
-                const line = `"${driver}","${returnDate}","${row.productionDate}","${scanTime}","${row.invoiceNo}","${row.brand}","${row.branch}","${row.itemName}",${row.unitPrice},${row.qty},${total}`;
-                csvContent += line + "\n";
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                alert("Invoice Saved & Synced Centralized Online Successfully!");
+                currentInvoiceItems = [];
+                document.getElementById('invoiceNo').value = "";
+                document.getElementById('branch').value = ""; 
+                document.getElementById('itemList').innerHTML = "";
+                document.getElementById('invoiceTotalDisplay').textContent = "0.000";
+                resetItemDetails();
+                lastScannedBarcode = null;
+            })
+            .catch(err => {
+                alert("Error sending data to server. Check your connection.");
+                console.error(err);
+            })
+            .finally(() => {
+                saveBtn.disabled = false;
+                saveBtn.textContent = "Finalize & Save Invoice";
             });
-
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `Return_Invoices_${new Date().toISOString().slice(0,10)}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
         }
 
-        function clearDatabase() {
-            if (confirm("Are you sure you want to clear ALL saved records? Make sure you exported first!")) {
-                localStorage.removeItem('returned_invoices');
-                alert("Database cleared.");
-            }
+        // --- ADMIN DOWNLOAD EXCEL DATA FROM LAPTOP ---
+        function exportToExcel() {
+            const exportBtn = document.getElementById('exportBtn');
+            exportBtn.disabled = true;
+            exportBtn.textContent = "Fetching Server Records...";
+
+            fetch(GOOGLE_SCRIPT_URL)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data || data.length === 0) {
+                        alert("No data available to export.");
+                        return;
+                    }
+
+                    let csvContent = "data:text/csv;charset=utf-8,";
+                    data.forEach(row => {
+                        const line = row.map(e => `"${e}"`).join(",");
+                        csvContent += line + "\n";
+                    });
+
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", `All_Drivers_Return_Invoices_${new Date().toISOString().slice(0,10)}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                })
+                .catch(err => {
+                    alert("Error fetching data from server: " + err);
+                    console.error(err);
+                })
+                .finally(() => {
+                    exportBtn.disabled = false;
+                    exportBtn.textContent = "Export All Data to Excel (CSV)";
+                });
         }
     </script>
 </body>
