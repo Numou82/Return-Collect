@@ -54,6 +54,40 @@
             font-weight: 700;
             letter-spacing: -0.5px;
         }
+
+        /* Mobile-Friendly Custom Dropdown Options */
+        .autocomplete-wrapper {
+            position: relative;
+        }
+
+        .autocomplete-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #fff;
+            border: 1px solid #ced4da;
+            border-top: none;
+            border-radius: 0 0 0.375rem 0.375rem;
+            z-index: 9999;
+            display: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .autocomplete-suggestion {
+            padding: 10px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.95rem;
+        }
+
+        .autocomplete-suggestion:active, 
+        .autocomplete-suggestion:hover {
+            background-color: #0e7490;
+            color: #ffffff;
+        }
     </style>
 </head>
 <body>
@@ -83,19 +117,6 @@
             <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
         </div>
 
-        <!-- NEW OVERALL LIVE TRACKER FOR DRIVERS -->
-        <div class="card p-3 mb-3 bg-warning border-0 shadow">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h6 class="text-dark mb-0"><b>Total Driver Collection Summary</b></h6>
-                    <small class="text-dark opacity-75">All saved invoices combined</small>
-                </div>
-                <div class="text-end">
-                    <span class="fs-4 text-dark font-monospace"><b>KWD <span id="overallTotalDisplay">0.000</span></b></span>
-                </div>
-            </div>
-        </div>
-
         <h2 class="text-center my-3 text-light">Return Invoice Collector</h2>
          
         <div class="card p-3 mb-3">
@@ -113,10 +134,10 @@
                 </select>
             </div>
 
-            <div class="mb-3">
+            <div class="mb-3 autocomplete-wrapper">
                 <label class="form-label"><b>3. Search/Select Branch:</b></label>
-                <input type="text" id="branch" class="form-control" placeholder="Type characters to search branch..." list="branchOptions" onchange="onBranchSelectChange()" autocomplete="off">
-                <datalist id="branchOptions"></datalist>
+                <input type="text" id="branch" class="form-control" placeholder="Type characters to search branch..." oninput="filterBranchOptions()" onfocus="filterBranchOptions()" autocomplete="off">
+                <div id="branchSuggestions" class="autocomplete-suggestions"></div>
             </div>
         </div>
 
@@ -129,10 +150,10 @@
 
         <div class="card p-3 mb-3">
             <h5><b>Item Details</b></h5>
-            <div class="mb-2">
+            <div class="mb-2 autocomplete-wrapper">
                 <label>Item Name:</label>
-                <input type="text" id="itemName" class="form-control" placeholder="Type characters to search item..." list="itemOptions" onchange="onItemSearchChange()" autocomplete="off">
-                <datalist id="itemOptions"></datalist>
+                <input type="text" id="itemName" class="form-control" placeholder="Type characters to search item..." oninput="filterItemOptions()" onfocus="filterItemOptions()" autocomplete="off">
+                <div id="itemSuggestions" class="autocomplete-suggestions"></div>
             </div>
             <div class="row">
                 <div class="col-6 mb-2">
@@ -202,8 +223,6 @@
                     document.getElementById('adminActions').classList.add('d-none');
                 }
 
-                // Calculate and update the overall totals right on login
-                calculateOverallTotal();
                 initScanner();
             } else {
                 alert("Invalid User ID or Password!");
@@ -216,18 +235,6 @@
             document.getElementById('loginPassword').value = "";
             document.getElementById('appContainer').classList.add('d-none');
             document.getElementById('loginSection').classList.remove('d-none');
-        }
-
-        // Calculates the running total of all items stored inside localStorage
-        function calculateOverallTotal() {
-            const allSavedReturns = JSON.parse(localStorage.getItem('returned_invoices')) || [];
-            let totalSum = 0;
-            allSavedReturns.forEach(item => {
-                const price = parseFloat(item.unitPrice) || 0;
-                const qty = parseInt(item.qty) || 0;
-                totalSum += (price * qty);
-            });
-            document.getElementById('overallTotalDisplay').textContent = totalSum.toFixed(3);
         }
 
         // --- AUDIO GENERATOR ---
@@ -340,65 +347,106 @@
         let lastScanTime = 0;
 
         window.addEventListener('DOMContentLoaded', () => {
-            populateItemsDatalist();
             document.body.addEventListener('click', () => { initAudioContext(); }, { once: false });
-        });
-
-        function populateItemsDatalist() {
-            const itemOptions = document.getElementById('itemOptions');
-            itemOptions.innerHTML = "";
-            const uniqueItems = new Set();
-            Object.values(productDatabase).forEach(item => uniqueItems.add(item.name));
-            uniqueItems.forEach(itemName => {
-                const option = document.createElement('option');
-                option.value = itemName;
-                itemOptions.appendChild(option);
+            
+            // Hide custom autocomplete dropdowns when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.autocomplete-wrapper')) {
+                    document.getElementById('branchSuggestions').style.display = 'none';
+                    document.getElementById('itemSuggestions').style.display = 'none';
+                }
             });
-        }
+        });
 
         function onBrandChange() {
             resetItemDetails();
-            const brandSelect = document.getElementById('brand').value;
-            const branchInput = document.getElementById('branch');
-            const branchOptions = document.getElementById('branchOptions');
-             
-            branchInput.value = "";
-            branchOptions.innerHTML = "";
-
-            if (brandSelect && branchDatabase[brandSelect]) {
-                branchDatabase[brandSelect].forEach(branchName => {
-                    const option = document.createElement('option');
-                    option.value = branchName;
-                    branchOptions.appendChild(option);
-                });
-            }
+            document.getElementById('branch').value = "";
+            document.getElementById('branchSuggestions').style.display = "none";
         }
 
-        function onBranchSelectChange() {
-            const branchInput = document.getElementById('branch');
-            const val = branchInput.value.trim();
-            if (val) {
-                branchInput.value = val;
-            }
-        }
-
-        function onItemSearchChange() {
-            const itemInput = document.getElementById('itemName');
-            const typedName = itemInput.value.trim();
+        // --- CUSTOM TOUCH-FRIENDLY AUTOCOMPLETE FOR BRANCHES ---
+        function filterBranchOptions() {
             const brand = document.getElementById('brand').value;
-            
-            if (!typedName) return;
+            const inputVal = document.getElementById('branch').value.toLowerCase();
+            const suggestionsContainer = document.getElementById('branchSuggestions');
 
+            if (!brand) {
+                alert("Please select a Brand first!");
+                document.getElementById('branch').value = "";
+                return;
+            }
+
+            const branches = branchDatabase[brand] || [];
+            const matches = branches.filter(b => b.toLowerCase().includes(inputVal));
+
+            suggestionsContainer.innerHTML = "";
+            if (matches.length > 0) {
+                matches.forEach(branchName => {
+                    const div = document.createElement('div');
+                    div.className = 'autocomplete-suggestion';
+                    div.textContent = branchName;
+                    
+                    const selectOption = (e) => {
+                        e.preventDefault();
+                        document.getElementById('branch').value = branchName;
+                        suggestionsContainer.style.display = 'none';
+                    };
+
+                    div.addEventListener('touchstart', selectOption);
+                    div.addEventListener('click', selectOption);
+
+                    suggestionsContainer.appendChild(div);
+                });
+                suggestionsContainer.style.display = 'block';
+            } else {
+                suggestionsContainer.style.display = 'none';
+            }
+        }
+
+        // --- CUSTOM TOUCH-FRIENDLY AUTOCOMPLETE FOR ITEMS ---
+        function filterItemOptions() {
+            const inputVal = document.getElementById('itemName').value.toLowerCase();
+            const suggestionsContainer = document.getElementById('itemSuggestions');
+            const brand = document.getElementById('brand').value;
+
+            const items = Object.values(productDatabase).map(i => i.name);
+            const matches = items.filter(i => i.toLowerCase().includes(inputVal));
+
+            suggestionsContainer.innerHTML = "";
+            if (matches.length > 0 && inputVal.length > 0) {
+                matches.forEach(itemName => {
+                    const div = document.createElement('div');
+                    div.className = 'autocomplete-suggestion';
+                    div.textContent = itemName;
+
+                    const selectOption = (e) => {
+                        e.preventDefault();
+                        if (!brand) {
+                            alert("Please select a Brand first to fetch the correct price!");
+                            suggestionsContainer.style.display = 'none';
+                            return;
+                        }
+                        document.getElementById('itemName').value = itemName;
+                        suggestionsContainer.style.display = 'none';
+                        onItemSearchChange(itemName);
+                    };
+
+                    div.addEventListener('touchstart', selectOption);
+                    div.addEventListener('click', selectOption);
+
+                    suggestionsContainer.appendChild(div);
+                });
+                suggestionsContainer.style.display = 'block';
+            } else {
+                suggestionsContainer.style.display = 'none';
+            }
+        }
+
+        function onItemSearchChange(typedName) {
+            const brand = document.getElementById('brand').value;
             const matchedEntry = Object.entries(productDatabase).find(([barcode, data]) => data.name === typedName);
             
             if (matchedEntry) {
-                if (!brand) {
-                    alert("Please select a Brand first to fetch the correct price!");
-                    itemInput.value = "";
-                    return;
-                }
-                itemInput.value = typedName;
-                
                 const itemData = matchedEntry[1];
                 const price = (brand === "Canteen") ? itemData.canteenPrice : itemData.trolleyPrice;
                 document.getElementById('unitPrice').value = price;
@@ -529,7 +577,6 @@
              
             alert("Invoice Saved Successfully Offline!");
              
-            // Clear temporary invoice tracking
             currentInvoiceItems = [];
             document.getElementById('invoiceNo').value = "";
             document.getElementById('branch').value = ""; 
@@ -537,9 +584,6 @@
             document.getElementById('invoiceTotalDisplay').textContent = "0.000";
             resetItemDetails();
             lastScannedBarcode = null;
-
-            // Recalculate global driver totals summary
-            calculateOverallTotal();
         }
 
         function exportToExcel() {
@@ -576,7 +620,6 @@
             if (confirm("Are you sure you want to clear ALL saved records? Make sure you exported first!")) {
                 localStorage.removeItem('returned_invoices');
                 alert("Database cleared.");
-                calculateOverallTotal(); // Reset summary display to 0.000
             }
         }
     </script>
