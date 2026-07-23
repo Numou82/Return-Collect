@@ -168,7 +168,7 @@
                 </div>
             </div>
 
-            <!-- RETURN REASON (PLACED DIRECTLY BELOW QTY) -->
+            <!-- RETURN REASON -->
             <div class="mb-2">
                 <label><b>Return Reason:</b></label>
                 <select id="returnReason" class="form-select">
@@ -181,10 +181,18 @@
                 </select>
             </div>
 
-            <div class="mb-3">
-                <label>Production Date (Sent Date):</label>
-                <input type="date" id="prodDate" class="form-control">
+            <!-- RETURN DATE & PRODUCTION DATE ROW -->
+            <div class="row mb-3">
+                <div class="col-6">
+                    <label><b>Return Date:</b></label>
+                    <input type="date" id="returnDateHeader" class="form-control">
+                </div>
+                <div class="col-6">
+                    <label>Production Date (Sent):</label>
+                    <input type="date" id="prodDate" class="form-control">
+                </div>
             </div>
+
             <button class="btn btn-success w-100" onclick="addReturnItem()">Add Item to This Invoice</button>
         </div>
 
@@ -225,6 +233,11 @@
         window.addEventListener('DOMContentLoaded', () => {
             document.body.addEventListener('click', () => { initAudioContext(); }, { once: false });
             
+            // Set Default Return Date to Today
+            const today = new Date().toISOString().split('T')[0];
+            const returnDateInput = document.getElementById('returnDateHeader');
+            if (returnDateInput) returnDateInput.value = today;
+
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.autocomplete-wrapper')) {
                     document.getElementById('branchSuggestions').style.display = 'none';
@@ -533,6 +546,7 @@
             document.getElementById('manualBarcode').value = "";
             document.getElementById('qty').value = "1";
             document.getElementById('returnReason').value = "Expired";
+            document.getElementById('prodDate').value = "";
         }
 
         function addReturnItem() {
@@ -541,9 +555,10 @@
             const qty = document.getElementById('qty').value;
             const reason = document.getElementById('returnReason').value;
             const prodDate = document.getElementById('prodDate').value;
+            const retDate = document.getElementById('returnDateHeader').value;
 
-            if (!name || !price || !qty || !prodDate) {
-                alert("Please select/scan a valid item, check price/qty, and provide a production date.");
+            if (!name || !price || !qty || !prodDate || !retDate) {
+                alert("Please select/scan a valid item, check price/qty, select Return Date, and provide a production date.");
                 return;
             }
 
@@ -552,7 +567,8 @@
                 price: parseFloat(price), 
                 qty: parseInt(qty), 
                 reason: reason,
-                prodDate 
+                prodDate,
+                returnDate: retDate
             };
             
             currentInvoiceItems.push(itemData);
@@ -574,7 +590,7 @@
                 list.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">
                     <div>
                         <b>${item.name}</b><br>
-                        <small class="text-muted">Prod Date: ${item.prodDate} | Qty: ${item.qty} | Reason: <b class="text-dark">${item.reason}</b> @ KWD ${item.price.toFixed(3)}</small>
+                        <small class="text-muted">Ret Date: ${item.returnDate} | Prod Date: ${item.prodDate} | Qty: ${item.qty}<br>Reason: <b class="text-dark">${item.reason}</b> @ KWD ${item.price.toFixed(3)}</small>
                     </div>
                     <div class="text-end">
                         <span><b>KWD ${totalItemPrice.toFixed(3)}</b></span><br>
@@ -608,17 +624,12 @@
 
             let payload = [];
             const now = new Date();
-            
-            // Format clean strings for date & time
-            const dateStr = now.getFullYear() + "-" + 
-                            String(now.getMonth() + 1).padStart(2, '0') + "-" + 
-                            String(now.getDate()).padStart(2, '0');
             const timeStr = now.toLocaleTimeString('en-US', { hour12: true });
 
             currentInvoiceItems.forEach(item => {
                 payload.push({
                     driverName: currentUser ? currentUser.name : "Unknown",
-                    returnDate: dateStr,
+                    returnDate: item.returnDate,
                     productionDate: item.prodDate,
                     scanTime: timeStr,
                     invoiceNo: invoiceNo,
@@ -649,7 +660,7 @@
                 lastScannedBarcode = null;
             })
             .catch(err => {
-                alert("Error sending data to server. Check your connection.");
+                alert("Error saving invoice. Please try again.");
                 console.error(err);
             })
             .finally(() => {
