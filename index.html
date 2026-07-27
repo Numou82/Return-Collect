@@ -81,23 +81,29 @@
 
             <!-- NAVIGATION TABS -->
             <ul class="nav nav-tabs mb-4" id="appTabs" role="tablist">
-                <li class="nav-item">
+                <!-- DRIVER TABS -->
+                <li class="nav-item" id="driverEntryTab" style="display:none;">
                     <button class="nav-link active" id="entry-tab" data-bs-toggle="tab" data-bs-target="#entryTab" type="button">Return Delivery Entry</button>
                 </li>
-                <li class="nav-item" id="driverDashTab">
+                <li class="nav-item" id="driverDashTab" style="display:none;">
                     <button class="nav-link" id="driver-dashboard-tab" data-bs-toggle="tab" data-bs-target="#driverDashboardTab" type="button" onclick="renderDriverDashboard()">My Dashboard</button>
                 </li>
-                <li class="nav-item">
-                    <button class="nav-link" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboardTab" type="button" onclick="renderExecutiveDashboard()" style="display:none;">Executive Dashboard</button>
+
+                <!-- ADMIN TABS -->
+                <li class="nav-item" id="adminEntryTab" style="display:none;">
+                    <button class="nav-link active" id="admin-entry-tab" data-bs-toggle="tab" data-bs-target="#entryTab" type="button">Return Delivery Entry</button>
                 </li>
-                <li class="nav-item">
-                    <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#reportTab" type="button" onclick="renderBrandReport()" style="display:none;">Sales Return Report</button>
+                <li class="nav-item" id="adminDashboardTab" style="display:none;">
+                    <button class="nav-link" id="admin-dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboardTab" type="button" onclick="renderExecutiveDashboard()">Executive Dashboard</button>
                 </li>
-                <li class="nav-item">
-                    <button class="nav-link" id="soa-tab" data-bs-toggle="tab" data-bs-target="#soaTab" type="button" onclick="renderLateSOAReport()" style="display:none;">Late SOA Tracker</button>
+                <li class="nav-item" id="adminReportTab" style="display:none;">
+                    <button class="nav-link" id="admin-report-tab" data-bs-toggle="tab" data-bs-target="#reportTab" type="button" onclick="renderBrandReport()">Sales Return Report</button>
                 </li>
-                <li class="nav-item d-none" id="salesAdminTab">
-                    <button class="nav-link" id="sales-tab" data-bs-toggle="tab" data-bs-target="#salesTab" type="button">Daily Sales Upload (Admin)</button>
+                <li class="nav-item" id="adminSoaTab" style="display:none;">
+                    <button class="nav-link" id="admin-soa-tab" data-bs-toggle="tab" data-bs-target="#soaTab" type="button" onclick="renderLateSOAReport()">Late SOA Tracker</button>
+                </li>
+                <li class="nav-item" id="salesAdminTab" style="display:none;">
+                    <button class="nav-link" id="sales-tab" data-bs-toggle="tab" data-bs-target="#salesTab" type="button">Daily Sales Upload</button>
                 </li>
             </ul>
 
@@ -511,12 +517,6 @@
         </div>
     </div>
 
-    <!-- Sync Status Badge -->
-    <div id="syncBadge" class="sync-badge alert alert-info alert-dismissible fade show d-none" role="alert">
-        <small id="syncText">⏳ Syncing...</small>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -589,22 +589,8 @@
         }
 
         function manualSync() {
-            showSyncBadge("🔄 Syncing...");
             syncDataAcrossDevices();
-            setTimeout(() => {
-                showSyncBadge("✅ Synced Successfully!");
-                setTimeout(() => hideSyncBadge(), 3000);
-            }, 1000);
-        }
-
-        function showSyncBadge(message) {
-            const badge = document.getElementById('syncBadge');
-            document.getElementById('syncText').textContent = message;
-            badge.classList.remove('d-none');
-        }
-
-        function hideSyncBadge() {
-            document.getElementById('syncBadge').classList.add('d-none');
+            alert("✅ Data synced successfully!");
         }
 
         function applyUserSession(user) {
@@ -613,19 +599,35 @@
             document.getElementById('loginSection').classList.add('d-none');
             document.getElementById('appContainer').classList.remove('d-none');
 
-            // Role-based tab visibility
+            // Hide all tabs first
+            document.getElementById('driverEntryTab').style.display = 'none';
+            document.getElementById('driverDashTab').style.display = 'none';
+            document.getElementById('adminEntryTab').style.display = 'none';
+            document.getElementById('adminDashboardTab').style.display = 'none';
+            document.getElementById('adminReportTab').style.display = 'none';
+            document.getElementById('adminSoaTab').style.display = 'none';
+            document.getElementById('salesAdminTab').style.display = 'none';
+
+            // Show tabs based on role
             if (user.role === 'admin') {
-                document.getElementById('salesAdminTab').classList.remove('d-none');
-                document.getElementById('dashboard-tab').style.display = 'block';
-                document.getElementById('report-tab').style.display = 'block';
-                document.getElementById('soa-tab').style.display = 'block';
-                document.getElementById('driverDashTab').style.display = 'none';
+                // Admin sees all tabs
+                document.getElementById('adminEntryTab').style.display = 'block';
+                document.getElementById('adminDashboardTab').style.display = 'block';
+                document.getElementById('adminReportTab').style.display = 'block';
+                document.getElementById('adminSoaTab').style.display = 'block';
+                document.getElementById('salesAdminTab').style.display = 'block';
+
+                // Set active tab to Entry
+                const firstTab = document.getElementById('admin-entry-tab');
+                if (firstTab) firstTab.click();
             } else {
-                document.getElementById('salesAdminTab').classList.add('d-none');
-                document.getElementById('dashboard-tab').style.display = 'none';
-                document.getElementById('report-tab').style.display = 'none';
-                document.getElementById('soa-tab').style.display = 'none';
+                // Driver sees only Entry and My Dashboard
+                document.getElementById('driverEntryTab').style.display = 'block';
                 document.getElementById('driverDashTab').style.display = 'block';
+
+                // Set active tab to Entry
+                const firstTab = document.getElementById('entry-tab');
+                if (firstTab) firstTab.click();
             }
 
             initScanner();
@@ -1017,7 +1019,6 @@
             const driverName = currentUser ? currentUser.name : "Driver";
 
             let filteredReturns = savedReturnsDatabase.filter(r => r.driver === driverName);
-            let filteredSales = []; // Drivers don't see sales data
 
             if (selectedDate) {
                 filteredReturns = filteredReturns.filter(r => r.returnDate === selectedDate || r.prodDate === selectedDate);
