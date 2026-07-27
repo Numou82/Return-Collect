@@ -632,6 +632,33 @@
             });
         }
 
+        // --- FORMAT DATE VALUES FOR EXPORT ---
+        // Fixes ISO date strings (e.g., 2026-07-22T21:00:00.000Z) to readable format (e.g., 7/22/2026)
+        function formatExportValue(value, header) {
+            if (value === null || value === undefined || value === "") return "";
+            
+            const headerLower = String(header).toLowerCase();
+            
+            // Only process date fields (returnDate, productionDate, etc.)
+            if (headerLower.includes('date')) {
+                // Handle ISO 8601 strings like: 2026-07-22T21:00:00.000Z
+                if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
+                    const datePart = value.substring(0, 10); // Extract "YYYY-MM-DD"
+                    const [year, month, day] = datePart.split('-');
+                    // Return as M/D/YYYY (e.g., 7/22/2026) for Excel compatibility
+                    return `${parseInt(month)}/${parseInt(day)}/${year}`;
+                }
+                
+                // Handle plain YYYY-MM-DD strings
+                if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                    const [year, month, day] = value.split('-');
+                    return `${parseInt(month)}/${parseInt(day)}/${year}`;
+                }
+            }
+            
+            return value;
+        }
+
         // --- ADMIN EXPORT FUNCTION ---
         function exportToExcel() {
             const exportBtn = document.getElementById('exportBtn');
@@ -653,7 +680,9 @@
 
                     data.forEach(row => {
                         const values = headers.map(header => {
-                            const val = row[header] !== undefined ? row[header] : "";
+                            let val = row[header] !== undefined ? row[header] : "";
+                            // Format dates before CSV conversion
+                            val = formatExportValue(val, header);
                             return `"${String(val).replace(/"/g, '""')}"`;
                         });
                         csvRows.push(values.join(","));
