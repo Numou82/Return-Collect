@@ -3,206 +3,547 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Return Delivery Note App</title>
+    <title>Enterprise Sales & Return Delivery Management System</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- HTML5-QRCode Library -->
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- HTML5-QRCode Library for Mobile Camera Scanning -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <!-- Chart.js for Admin Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS for Excel Upload & Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <style>
-        body {
-            background-color: #f8f9fa;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        /* SIDEBAR STYLES */
+        .sidebar {
+            position: fixed; left: 0; top: 0; height: 100vh; width: 260px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white; overflow-y: auto; z-index: 1000; box-shadow: 2px 0 10px rgba(0,0,0,0.2);
         }
-        .app-card {
-            max-width: 600px;
-            margin: 20px auto;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        .sidebar-header {
+            background: rgba(0, 0, 0, 0.2); padding: 20px; text-align: center; border-bottom: 2px solid rgba(255,255,255,0.1);
         }
-        #reader {
-            width: 100%;
-            border-radius: 8px;
-            overflow: hidden;
+        .sidebar-header h4 { margin: 0; font-weight: 700; font-size: 1.1rem; }
+        .sidebar-menu { list-style: none; padding: 15px 0; }
+        .sidebar-menu a {
+            display: flex; align-items: center; padding: 14px 20px; color: rgba(255,255,255,0.85);
+            text-decoration: none; transition: all 0.3s ease; border-left: 4px solid transparent;
         }
-        .autocomplete-wrapper {
-            position: relative;
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background: rgba(255, 255, 255, 0.15); color: white; border-left-color: #ffc107; font-weight: 600;
         }
+        .sidebar-menu i { width: 30px; text-align: center; margin-right: 10px; }
+
+        .main-content { margin-left: 260px; padding: 20px; }
+        .app-card { border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: none; }
+        
+        .header-top {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; background: white; padding: 15px 20px;
+            border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .autocomplete-wrapper { position: relative; }
         .autocomplete-suggestions {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: #fff;
-            border: 1px solid #ced4da;
-            border-radius: 0 0 6px 6px;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 1050;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            position: absolute; top: 100%; left: 0; right: 0; background: #fff;
+            border: 1px solid #ced4da; border-radius: 0 0 6px 6px; max-height: 200px;
+            overflow-y: auto; z-index: 1050; box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
-        .autocomplete-suggestion {
-            padding: 8px 12px;
-            cursor: pointer;
-            border-bottom: 1px solid #f1f1f1;
+        .autocomplete-suggestion { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f1f1f1; }
+        .autocomplete-suggestion:hover { background-color: #e9ecef; }
+
+        .login-container {
+            display: flex; justify-content: center; align-items: center; height: 100vh;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         }
-        .autocomplete-suggestion:hover {
-            background-color: #e9ecef;
+        .login-card { background: white; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); padding: 40px; width: 100%; max-width: 400px; }
+        .sidebar-footer { position: absolute; bottom: 0; width: 100%; padding: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
+        #reader { width: 100%; max-width: 380px; margin: 0 auto; border-radius: 8px; overflow: hidden; }
+
+        .kpi-card { border-radius: 10px; border: none; padding: 15px; color: white; transition: transform 0.2s; }
+        .kpi-card:hover { transform: translateY(-3px); }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 200px; }
+            .main-content { margin-left: 200px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- LOGIN CONTAINER -->
-    <div id="loginSection" class="container mt-5">
-        <div class="card app-card p-4">
-            <h3 class="text-center mb-4 text-primary">Login</h3>
+    <!-- LOGIN SCREEN -->
+    <div id="loginSection" class="login-container">
+        <div class="login-card">
+            <h3 class="text-center fw-bold mb-4 text-primary"><i class="fas fa-chart-line"></i> Enterprise Portal</h3>
             <div class="mb-3">
-                <label for="loginId" class="form-label">User ID / Username</label>
+                <label for="loginId" class="form-label fw-bold">User ID</label>
                 <input type="text" id="loginId" class="form-control" placeholder="e.g. shahbaz, admin">
             </div>
             <div class="mb-3">
-                <label for="loginPassword" class="form-label">Password</label>
+                <label for="loginPassword" class="form-label fw-bold">Password</label>
                 <input type="password" id="loginPassword" class="form-control" placeholder="Enter password">
             </div>
-            <button class="btn btn-primary w-100" onclick="handleLogin()">Login</button>
+            <button class="btn btn-primary w-100 py-2 fw-bold" onclick="handleLogin()">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </button>
         </div>
     </div>
 
-    <!-- MAIN APP CONTAINER -->
-    <div id="appContainer" class="container d-none">
+    <!-- SIDEBAR NAVIGATION -->
+    <div id="sidebarSection" class="sidebar d-none">
+        <div class="sidebar-header">
+            <h4><i class="fas fa-boxes"></i> Sales & Return System</h4>
+            <small id="userDisplayName">Welcome</small>
+        </div>
+
+        <ul class="sidebar-menu">
+            <!-- ADMIN ONLY: DASHBOARD & REPORTING -->
+            <li class="admin-only d-none">
+                <a href="#" id="menuDashboard" class="nav-link-sidebar active" onclick="switchTab('dashboardTab', this); renderDashboard();">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard & Reports
+                </a>
+            </li>
+            <!-- DRIVER & ADMIN ACCESSIBLE MENU -->
+            <li>
+                <a href="#" id="menuEntry" class="nav-link-sidebar" onclick="switchTab('entryTab', this)">
+                    <i class="fas fa-file-invoice"></i> Return Entry
+                </a>
+            </li>
+            <!-- ADMIN ONLY: SALES PORTAL -->
+            <li class="admin-only d-none">
+                <a href="#" id="menuSales" class="nav-link-sidebar" onclick="switchTab('salesTab', this)">
+                    <i class="fas fa-file-excel"></i> Sales Portal (Invoices)
+                </a>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <button class="btn btn-outline-light btn-sm w-100" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN APP INTERFACE -->
+    <div id="appContainer" class="main-content d-none">
+        <div class="header-top">
+            <div>
+                <h3 id="pageTitle" class="m-0 fw-bold">Analytics & Executive Reporting</h3>
+                <small class="text-muted">User: <strong id="displayDriverName">---</strong> | Role: <strong id="displayUserRole">---</strong></small>
+            </div>
+            <button class="btn btn-outline-danger btn-sm" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+
         <div class="card app-card p-4">
-            
-            <!-- HEADER LOGOUT -->
-            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
-                <div>
-                    <small class="text-muted">Logged in as:</small><br>
-                    <strong id="displayDriverName" class="text-primary">---</strong>
-                </div>
-                <button class="btn btn-outline-danger btn-sm" onclick="logout()">Logout</button>
-            </div>
-
-            <h4 class="text-center mb-3">Return Delivery Note</h4>
-
-            <!-- ADMIN SECTION -->
-            <div id="adminActions" class="mb-3 d-none">
-                <button id="exportBtn" class="btn btn-success w-100 mb-2" onclick="exportToExcel()">
-                    Export All Data to Excel (CSV)
-                </button>
-            </div>
-
-            <!-- INVOICE HEADER DETAILS -->
-            <div class="row g-2 mb-3">
-                <div class="col-6">
-                    <label class="form-label small fw-bold">Return Date</label>
-                    <input type="date" id="returnDateHeader" class="form-control form-control-sm">
-                </div>
-                <div class="col-6">
-                    <label class="form-label small fw-bold">Invoice No</label>
-                    <input type="text" id="invoiceNo" class="form-control form-control-sm" placeholder="e.g. INV-1001">
-                </div>
-                <div class="col-6">
-                    <label class="form-label small fw-bold">Brand</label>
-                    <select id="brand" class="form-select form-select-sm" onchange="onBrandChange()">
-                        <option value="">-- Select --</option>
-                        <option value="Canteen">Canteen</option>
-                        <option value="Trolley">Trolley</option>
-                    </select>
-                </div>
-                <div class="col-6 autocomplete-wrapper">
-                    <label class="form-label small fw-bold">Branch</label>
-                    <input type="text" id="branch" class="form-control form-control-sm" placeholder="Search branch..." oninput="filterBranchOptions()">
-                    <div id="branchSuggestions" class="autocomplete-suggestions" style="display:none;"></div>
-                </div>
-            </div>
-
-            <hr>
-
-            <!-- CAMERA SCANNER SECTION -->
-            <div class="mb-3">
-                <label class="form-label small fw-bold">Scan Barcode</label>
-                <div id="reader"></div>
-            </div>
-
-            <!-- ITEM INPUT FORM -->
-            <div class="bg-light p-3 rounded mb-3 border">
-                <div class="mb-2 autocomplete-wrapper">
-                    <label class="form-label small">Item Name / Search</label>
-                    <input type="text" id="itemName" class="form-control form-control-sm" placeholder="Type or scan item..." oninput="filterItemOptions()">
-                    <div id="itemSuggestions" class="autocomplete-suggestions" style="display:none;"></div>
-                </div>
-
-                <div class="row g-2 mb-2">
-                    <div class="col-6">
-                        <label class="form-label small">Barcode</label>
-                        <input type="text" id="manualBarcode" class="form-control form-control-sm" placeholder="Scanned Barcode" readonly>
+            <div class="tab-content">
+                
+                <!-- TAB 1: ADMIN DASHBOARD & ADVANCED REPORTS -->
+                <div class="tab-pane fade show active" id="dashboardTab">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="text-secondary fw-bold mb-0"><i class="fas fa-chart-bar"></i> Performance Executive Dashboard</h5>
+                        <button class="btn btn-success btn-sm fw-bold" onclick="exportToExcel()">
+                            <i class="fas fa-file-excel"></i> Export Complete Report to Excel
+                        </button>
                     </div>
-                    <div class="col-6">
-                        <label class="form-label small">Unit Price (KWD)</label>
-                        <input type="number" id="unitPrice" class="form-control form-control-sm" step="0.001" readonly>
+
+                    <!-- REPORT FILTERS BAR -->
+                    <div class="bg-light p-3 rounded mb-4 border">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-3 col-6">
+                                <label class="form-label small fw-bold">From Date</label>
+                                <input type="date" id="filterFromDate" class="form-control form-control-sm" onchange="renderDashboard()">
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <label class="form-label small fw-bold">To Date</label>
+                                <input type="date" id="filterToDate" class="form-control form-control-sm" onchange="renderDashboard()">
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <label class="form-label small fw-bold">Search Particular Branch</label>
+                                <input type="text" id="filterBranch" class="form-control form-control-sm" placeholder="Type Branch Name..." oninput="renderDashboard()">
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <label class="form-label small fw-bold">Search Particular Item</label>
+                                <input type="text" id="filterItem" class="form-control form-control-sm" placeholder="Type Item Name..." oninput="renderDashboard()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TOP KPI SUMMARY CARDS -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-2 col-6">
+                            <div class="kpi-card bg-primary text-white shadow-sm">
+                                <small class="text-uppercase fw-bold">Gross Sales</small>
+                                <h4 class="fw-bold mt-1 mb-0" id="kpiGrossSales">0.000</h4>
+                                <small>KWD Total</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-6">
+                            <div class="kpi-card bg-danger text-white shadow-sm">
+                                <small class="text-uppercase fw-bold">Total Returns</small>
+                                <h4 class="fw-bold mt-1 mb-0" id="kpiTotalReturns">0.000</h4>
+                                <small>KWD Amount</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="kpi-card bg-success text-white shadow-sm">
+                                <small class="text-uppercase fw-bold">Net Revenue</small>
+                                <h4 class="fw-bold mt-1 mb-0" id="kpiNetSales">0.000</h4>
+                                <small>KWD (Sales - Returns)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-6">
+                            <div class="kpi-card bg-warning text-dark shadow-sm">
+                                <small class="text-uppercase fw-bold">Return Ratio</small>
+                                <h4 class="fw-bold mt-1 mb-0" id="kpiReturnRatio">0.0%</h4>
+                                <small>% of Total Sales</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-12">
+                            <div class="kpi-card bg-info text-white shadow-sm">
+                                <small class="text-uppercase fw-bold">Returned Qty</small>
+                                <h4 class="fw-bold mt-1 mb-0" id="kpiReturnedQty">0</h4>
+                                <small>Units Returned</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TOP 15 CHARTS & TABLES -->
+                    <div class="row g-4 mb-4">
+                        <!-- TOP 15 SELLING BRANCHES -->
+                        <div class="col-md-6">
+                            <div class="card shadow-sm p-3 border-0">
+                                <h6 class="fw-bold text-primary"><i class="fas fa-store"></i> Top 15 Best Selling Branches (KWD)</h6>
+                                <canvas id="topBranchesChart" style="max-height:280px;"></canvas>
+                                <div class="table-responsive mt-3" style="max-height:250px; overflow-y:auto;">
+                                    <table class="table table-sm table-hover text-center small">
+                                        <thead class="table-dark sticky-top">
+                                            <tr><th>Rank</th><th>Branch Name</th><th>Sales (KWD)</th><th>Returns (KWD)</th><th>Net (KWD)</th></tr>
+                                        </thead>
+                                        <tbody id="topBranchesTable"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TOP 15 SELLING ITEMS -->
+                        <div class="col-md-6">
+                            <div class="card shadow-sm p-3 border-0">
+                                <h6 class="fw-bold text-success"><i class="fas fa-box"></i> Top 15 Best Selling Items (KWD & Qty)</h6>
+                                <canvas id="topItemsChart" style="max-height:280px;"></canvas>
+                                <div class="table-responsive mt-3" style="max-height:250px; overflow-y:auto;">
+                                    <table class="table table-sm table-hover text-center small">
+                                        <thead class="table-dark sticky-top">
+                                            <tr><th>Rank</th><th>Item Name</th><th>Qty Sold</th><th>Sales Amount (KWD)</th></tr>
+                                        </thead>
+                                        <tbody id="topItemsTable"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="row g-2 mb-2">
-                    <div class="col-4">
-                        <label class="form-label small">Qty</label>
-                        <input type="number" id="qty" class="form-control form-control-sm" value="1" min="1">
+                <!-- TAB 2: RETURN ENTRY (ACCESSIBLE BY DRIVERS & ADMIN) -->
+                <div class="tab-pane fade" id="entryTab">
+                    <h5 class="mb-3 text-secondary fw-bold"><i class="fas fa-plus-circle"></i> Create Return Delivery Note</h5>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-3 col-6">
+                            <label class="form-label small fw-bold">Return Date</label>
+                            <input type="date" id="returnDateHeader" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <label class="form-label small fw-bold">Invoice No</label>
+                            <input type="text" id="invoiceNo" class="form-control form-control-sm" placeholder="e.g. INV-1001">
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <label class="form-label small fw-bold">Brand</label>
+                            <select id="brand" class="form-select form-select-sm" onchange="onBrandChange()">
+                                <option value="Canteen">Canteen</option>
+                                <option value="Trolley">Trolley</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-6 autocomplete-wrapper">
+                            <label class="form-label small fw-bold">Branch Name</label>
+                            <input type="text" id="branch" class="form-control form-control-sm" placeholder="Select Brand first..." onfocus="filterBranchOptions()" oninput="filterBranchOptions()">
+                            <div id="branchSuggestions" class="autocomplete-suggestions" style="display:none;"></div>
+                        </div>
                     </div>
-                    <div class="col-8">
-                        <label class="form-label small">Return Reason</label>
-                        <select id="returnReason" class="form-select form-select-sm">
-                            <option value="Expired">Expired</option>
-                            <option value="Damaged">Damaged</option>
-                            <option value="Quality Issue">Quality Issue</option>
-                            <option value="Overstock">Overstock</option>
-                        </select>
+
+                    <hr>
+
+                    <!-- MOBILE CAMERA SCANNER SECTION -->
+                    <div class="bg-light p-3 rounded mb-3 border text-center">
+                        <label class="form-label fw-bold text-primary mb-2"><i class="fas fa-camera"></i> Mobile Camera Barcode Scanner</label>
+                        <div id="reader"></div>
+                        <small class="text-muted d-block mt-1">Point camera at product barcode to scan automatically with audio beep confirmation.</small>
+                    </div>
+
+                    <!-- ITEM ADD FORM -->
+                    <div class="bg-light p-3 rounded mb-3 border">
+                        <div class="mb-2 autocomplete-wrapper">
+                            <label class="form-label small fw-bold">Search Item Name / Barcode</label>
+                            <input type="text" id="itemName" class="form-control form-control-sm" placeholder="Type or click to search item..." onfocus="filterItemOptions()" oninput="filterItemOptions()">
+                            <div id="itemSuggestions" class="autocomplete-suggestions" style="display:none;"></div>
+                        </div>
+
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label small">Barcode</label>
+                                <input type="text" id="manualBarcode" class="form-control form-control-sm" readonly>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">Unit Price (KWD)</label>
+                                <input type="number" id="unitPrice" class="form-control form-control-sm" step="0.001" readonly>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-2">
+                            <div class="col-4">
+                                <label class="form-label small fw-bold">Quantity</label>
+                                <input type="number" id="qty" class="form-control form-control-sm" value="1" min="1">
+                            </div>
+                            <div class="col-8">
+                                <label class="form-label small fw-bold">Reason for Return</label>
+                                <select id="returnReason" class="form-select form-select-sm">
+                                    <option value="Expired">Expired</option>
+                                    <option value="Damaged">Damaged</option>
+                                    <option value="Quality Issue">Quality Issue</option>
+                                    <option value="Overstock">Overstock</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-secondary btn-sm w-100 fw-bold" onclick="addReturnItem()">
+                            <i class="fas fa-plus"></i> Add Item to Return List
+                        </button>
+                    </div>
+
+                    <!-- CURRENT RETURN TABLE -->
+                    <div class="mb-3">
+                        <h6 class="fw-bold"><i class="fas fa-list"></i> Added Return Items</h6>
+                        <ul id="itemList" class="list-group mb-2"></ul>
+                        <div class="d-flex justify-content-between align-items-center fw-bold fs-5 px-2">
+                            <span>Total Return Amount:</span>
+                            <span>KWD <span id="invoiceTotalDisplay">0.000</span></span>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-success w-100 py-2 fw-bold" onclick="saveFullInvoice()">
+                        <i class="fas fa-save"></i> Submit & Save Return Note
+                    </button>
+                </div>
+
+                <!-- TAB 3: SALES PORTAL & EXCEL UPLOAD (ADMIN ONLY) -->
+                <div class="tab-pane fade" id="salesTab">
+                    <h5 class="mb-3 text-secondary fw-bold"><i class="fas fa-file-invoice-dollar"></i> Sales Invoice Management Portal</h5>
+                    
+                    <!-- UPLOAD SECTION -->
+                    <div class="p-4 border border-dashed text-center bg-light rounded mb-4">
+                        <i class="fas fa-file-excel text-success mb-2" style="font-size: 2.5rem;"></i>
+                        <p class="mb-1 fw-bold">Upload Sales Excel / CSV File</p>
+                        <small class="text-muted d-block mb-3">Format must contain columns: <code>Sent Date | Sent Invoice | Brand | Branch name | Barcode | Item Name | Qty | Unit Price | RSP | Total</code></small>
+                        <div class="d-flex justify-content-center align-items-center gap-2 max-w-md mx-auto">
+                            <input type="file" id="salesExcelInput" class="form-control form-control-sm" accept=".xlsx, .xls, .csv">
+                            <button class="btn btn-primary btn-sm fw-bold text-nowrap" onclick="uploadSalesExcel()">
+                                <i class="fas fa-cloud-upload-alt"></i> Upload Sales File
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- MANUAL SALE ENTRY (MATCHING IMAGE FORMAT) -->
+                    <div class="card p-3 mb-4 bg-light border">
+                        <h6 class="fw-bold mb-3 text-dark"><i class="fas fa-edit"></i> Add Single Sale Invoice Row</h6>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-2 col-6">
+                                <label class="form-label small fw-bold">Sent Date</label>
+                                <input type="date" id="saleSentDate" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-md-2 col-6">
+                                <label class="form-label small fw-bold">Sent Invoice</label>
+                                <input type="text" id="saleSentInvoice" class="form-control form-control-sm" placeholder="INV-2026">
+                            </div>
+                            <div class="col-md-2 col-6">
+                                <label class="form-label small fw-bold">Brand</label>
+                                <select id="saleBrand" class="form-select form-select-sm">
+                                    <option value="Canteen">Canteen</option>
+                                    <option value="Trolley">Trolley</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <label class="form-label small fw-bold">Branch Name</label>
+                                <input type="text" id="saleBranch" class="form-control form-control-sm" placeholder="e.g. Trolley - Egaila">
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <label class="form-label small fw-bold">Barcode</label>
+                                <input type="text" id="saleBarcode" class="form-control form-control-sm" placeholder="Barcode">
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-4 col-12">
+                                <label class="form-label small fw-bold">Item Name</label>
+                                <input type="text" id="saleItemName" class="form-control form-control-sm" placeholder="Item description">
+                            </div>
+                            <div class="col-md-2 col-4">
+                                <label class="form-label small fw-bold">Qty</label>
+                                <input type="number" id="saleQty" class="form-control form-control-sm" value="1" oninput="calcSaleTotal()">
+                            </div>
+                            <div class="col-md-2 col-4">
+                                <label class="form-label small fw-bold">Unit Price</label>
+                                <input type="number" id="saleUnitPrice" class="form-control form-control-sm" step="0.001" placeholder="0.000" oninput="calcSaleTotal()">
+                            </div>
+                            <div class="col-md-2 col-4">
+                                <label class="form-label small fw-bold">RSP</label>
+                                <input type="number" id="saleRSP" class="form-control form-control-sm" step="0.001" placeholder="0.000">
+                            </div>
+                            <div class="col-md-2 col-12">
+                                <label class="form-label small fw-bold">Total (KWD)</label>
+                                <input type="number" id="saleTotal" class="form-control form-control-sm fw-bold bg-white" readonly placeholder="0.000">
+                            </div>
+                        </div>
+
+                        <button class="btn btn-success btn-sm fw-bold w-100" onclick="addSingleSaleRecord()">
+                            <i class="fas fa-plus-circle"></i> Add Sale Record
+                        </button>
+                    </div>
+
+                    <!-- CURRENT SALES DATA TABLE -->
+                    <h6 class="fw-bold"><i class="fas fa-table"></i> Loaded Sales Records (<span id="salesCount">0</span> rows)</h6>
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-sm table-striped table-hover small text-center">
+                            <thead class="table-dark sticky-top">
+                                <tr>
+                                    <th>Sent Date</th>
+                                    <th>Sent Invoice</th>
+                                    <th>Brand</th>
+                                    <th>Branch name</th>
+                                    <th>Barcode</th>
+                                    <th>Item Name</th>
+                                    <th>Qty</th>
+                                    <th>Unit Price</th>
+                                    <th>RSP</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="salesTableBody"></tbody>
+                        </table>
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label small">Production Date</label>
-                    <input type="date" id="prodDate" class="form-control form-control-sm">
-                </div>
-
-                <button class="btn btn-secondary btn-sm w-100" onclick="addReturnItem()">Add Item to Invoice</button>
             </div>
-
-            <!-- INVOICE ITEMS LIST -->
-            <div class="mb-3">
-                <h6 class="fw-bold">Current Invoice Items</h6>
-                <ul id="itemList" class="list-group mb-2"></ul>
-                <div class="d-flex justify-content-between align-items-center fw-bold fs-5 px-2">
-                    <span>Total Amount:</span>
-                    <span>KWD <span id="invoiceTotalDisplay">0.000</span></span>
-                </div>
-            </div>
-
-            <button id="saveInvoiceBtn" class="btn btn-success w-100 py-2 fw-bold" onclick="saveFullInvoice()">Finalize & Save Invoice</button>
-
         </div>
     </div>
 
-    <!-- JAVASCRIPT LOGIC -->
+    <!-- SCRIPT LOGIC -->
     <script>
-        // --- GOOGLE SHEETS CENTRAL CLOUD API URL ---
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXTqzRbiBnhNlpNqFokTKeChSvfmOf3Z33tFGVVVBGxfsVhS0wXFyP2FEM0Ba0KoQ/exec";
-
-        // --- AUTHENTICATION & USER MANAGEMENT ---
+        // Driver and Admin Users Database
         const userDatabase = {
             "shahbaz": { name: "Shahbaz", pass: "1234", role: "driver" },
             "abdullah": { name: "Abdullah", pass: "1234", role: "driver" },
             "rashid": { name: "Rashid", pass: "1234", role: "driver" },
-            "admin": { name: "Amir khan", pass: "admin123", role: "admin" }
+            "admin": { name: "Amir Khan", pass: "admin123", role: "admin" }
         };
 
-        let currentUser = null;
+        // BRAND-BASED BRANCH DICTIONARY
+        const brandBranches = {
+            "Canteen": [
+                "Canteen - Main Office Headquarters",
+                "Canteen - Shuwaikh Industrial",
+                "Canteen - Salmiya Central",
+                "Canteen - Hawally Hub",
+                "Canteen - Farwaniya Complex",
+                "Canteen - Fahaheel Center",
+                "Canteen - Jahra Regional",
+                "Canteen - Ahmadi Facility",
+                "Canteen - Ardiya Storage",
+                "Canteen - Sharq Office"
+            ],
+            "Trolley": [
+                "Trolley - The Avenues Mall (Phase 1)",
+                "Trolley - The Avenues Mall (Phase 4)",
+                "Trolley - Airport T1 Departure",
+                "Trolley - Airport T4 Departure",
+                "Trolley - Jabriya Station",
+                "Trolley - Salmiya Gulf Road",
+                "Trolley - Egaila Mall",
+                "Trolley - Sabah Al-Salem",
+                "Trolley - Khiran Resort",
+                "Trolley - Mahboula Coastal",
+                "Trolley - Salwa Block 10",
+                "Trolley - Sharq Tower",
+                "Trolley - Fintas Station"
+            ]
+        };
 
-        // Auto-restore login session on refresh
+        // Master Product Catalog
+        const masterItems = [
+            { name: "Fresh Milk 1L", barcode: "10001", price: 0.450 },
+            { name: "Laban Fresh 500ml", barcode: "10002", price: 0.250 },
+            { name: "Greek Yogurt Plain", barcode: "10003", price: 0.350 },
+            { name: "Cheddar Cheese Block", barcode: "10004", price: 1.200 },
+            { name: "Butter Unsalted 200g", barcode: "10005", price: 0.850 },
+            { name: "Orange Juice 1L", barcode: "10006", price: 0.600 },
+            { name: "Apple Juice 1L", barcode: "10007", price: 0.600 },
+            { name: "Croissant Butter", barcode: "10008", price: 0.300 },
+            { name: "Sandwich Club Classic", barcode: "10009", price: 0.950 },
+            { name: "Water 500ml", barcode: "10010", price: 0.100 }
+        ];
+
+        // MASTER SALES DATA ARRAY (IN EXACT FORMAT MATCHING IMAGE)
+        let salesData = [
+            { sentDate: "2026-07-01", sentInvoice: "INV-9001", brand: "Trolley", branchName: "Trolley - The Avenues Mall (Phase 1)", barcode: "10001", itemName: "Fresh Milk 1L", qty: 620, unitPrice: 0.450, rsp: 0.500, total: 279.0 },
+            { sentDate: "2026-07-02", sentInvoice: "INV-9002", brand: "Canteen", branchName: "Canteen - Shuwaikh Industrial", barcode: "10002", itemName: "Laban Fresh 500ml", qty: 540, unitPrice: 0.250, rsp: 0.300, total: 135.0 },
+            { sentDate: "2026-07-03", sentInvoice: "INV-9003", brand: "Trolley", branchName: "Trolley - Airport T1 Departure", barcode: "10004", itemName: "Cheddar Cheese Block", qty: 410, unitPrice: 1.200, rsp: 1.350, total: 492.0 },
+            { sentDate: "2026-07-04", sentInvoice: "INV-9004", brand: "Canteen", branchName: "Canteen - Salmiya Central", barcode: "10003", itemName: "Greek Yogurt Plain", qty: 390, unitPrice: 0.350, rsp: 0.400, total: 136.5 },
+            { sentDate: "2026-07-05", sentInvoice: "INV-9005", brand: "Trolley", branchName: "Trolley - Jabriya Station", barcode: "10009", itemName: "Sandwich Club Classic", qty: 370, unitPrice: 0.950, rsp: 1.100, total: 351.5 },
+            { sentDate: "2026-07-06", sentInvoice: "INV-9006", brand: "Canteen", branchName: "Canteen - Hawally Hub", barcode: "10006", itemName: "Orange Juice 1L", qty: 330, unitPrice: 0.600, rsp: 0.700, total: 198.0 },
+            { sentDate: "2026-07-07", sentInvoice: "INV-9007", brand: "Trolley", branchName: "Trolley - Egaila Mall", barcode: "10005", itemName: "Butter Unsalted 200g", qty: 300, unitPrice: 0.850, rsp: 0.950, total: 255.0 },
+            { sentDate: "2026-07-08", sentInvoice: "INV-9008", brand: "Trolley", branchName: "Trolley - Sabah Al-Salem", barcode: "10008", itemName: "Croissant Butter", qty: 280, unitPrice: 0.300, rsp: 0.350, total: 84.0 },
+            { sentDate: "2026-07-09", sentInvoice: "INV-9009", brand: "Canteen", branchName: "Canteen - Farwaniya Complex", barcode: "10010", itemName: "Water 500ml", qty: 800, unitPrice: 0.100, rsp: 0.150, total: 80.0 },
+            { sentDate: "2026-07-10", sentInvoice: "INV-9010", brand: "Trolley", branchName: "Trolley - Khiran Resort", barcode: "10007", itemName: "Apple Juice 1L", qty: 250, unitPrice: 0.600, rsp: 0.700, total: 150.0 }
+        ];
+
+        // DRIVER SUBMITTED RETURNS DATA STORE
+        let returnData = [
+            { returnDate: "2026-07-12", invoiceNo: "INV-9001", brand: "Trolley", branchName: "Trolley - The Avenues Mall (Phase 1)", barcode: "10001", itemName: "Fresh Milk 1L", qty: 20, unitPrice: 0.450, total: 9.0, driver: "shahbaz" },
+            { returnDate: "2026-07-13", invoiceNo: "INV-9003", brand: "Trolley", branchName: "Trolley - Airport T1 Departure", barcode: "10004", itemName: "Cheddar Cheese Block", qty: 10, unitPrice: 1.200, total: 12.0, driver: "abdullah" }
+        ];
+
+        let currentUser = null;
+        let currentReturnItems = [];
+        let html5QrcodeScanner = null;
+        let branchChartInstance = null;
+        let itemChartInstance = null;
+
+        // AUDIO BEEP SOUND GENERATOR FOR CAMERA SCANNER
+        function playScanBeep() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.type = 'sine';
+                oscillator.frequency.value = 1200;
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.15);
+            } catch (e) {
+                console.log("Audio playback note: ", e);
+            }
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
-            document.body.addEventListener('click', () => { initAudioContext(); }, { once: false });
-            
-            // Set Default Return Date to Today
-            const today = new Date().toISOString().split('T')[0];
-            const returnDateInput = document.getElementById('returnDateHeader');
-            if (returnDateInput) returnDateInput.value = today;
+            document.getElementById('returnDateHeader').value = new Date().toISOString().split('T')[0];
+            document.getElementById('saleSentDate').value = new Date().toISOString().split('T')[0];
 
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.autocomplete-wrapper')) {
@@ -211,473 +552,483 @@
                 }
             });
 
-            const savedUser = localStorage.getItem('currentUser');
-            if (savedUser) {
-                try {
-                    currentUser = JSON.parse(savedUser);
-                    applyUserSession(currentUser);
-                } catch (e) {
-                    localStorage.removeItem('currentUser');
-                }
-            }
+            renderSalesTable();
         });
 
-        function applyUserSession(user) {
-            document.getElementById('displayDriverName').textContent = user.name;
-            document.getElementById('loginSection').classList.add('d-none');
-            document.getElementById('appContainer').classList.remove('d-none');
-
-            if (user.role === 'admin') {
-                document.getElementById('adminActions').classList.remove('d-none');
-            } else {
-                document.getElementById('adminActions').classList.add('d-none');
-            }
-
-            initScanner();
+        // HANDLE BRAND SELECTION CHANGE
+        function onBrandChange() {
+            document.getElementById('branch').value = '';
+            document.getElementById('branchSuggestions').style.display = 'none';
         }
 
+        // FILTER BRANCH OPTIONS BY BRAND
+        function filterBranchOptions() {
+            const selectedBrand = document.getElementById('brand').value;
+            const input = document.getElementById('branch').value.toLowerCase();
+            const box = document.getElementById('branchSuggestions');
+            box.innerHTML = '';
+
+            const availableBranches = brandBranches[selectedBrand] || [];
+            const matches = availableBranches.filter(b => b.toLowerCase().includes(input));
+
+            if (matches.length > 0) {
+                box.style.display = 'block';
+                matches.forEach(branch => {
+                    const div = document.createElement('div');
+                    div.className = 'autocomplete-suggestion';
+                    div.textContent = branch;
+                    div.onclick = () => {
+                        document.getElementById('branch').value = branch;
+                        box.style.display = 'none';
+                    };
+                    box.appendChild(div);
+                });
+            } else {
+                box.style.display = 'none';
+            }
+        }
+
+        // AUTHENTICATION & ACCESS CONTROL
         function handleLogin() {
             const idInput = document.getElementById('loginId').value.trim().toLowerCase();
             const passInput = document.getElementById('loginPassword').value.trim();
-
             const user = userDatabase[idInput];
 
             if (user && user.pass === passInput) {
-                initAudioContext();
                 currentUser = user;
-
-                localStorage.setItem('currentUser', JSON.stringify(user));
-
                 applyUserSession(user);
             } else {
                 alert("Invalid User ID or Password!");
             }
         }
 
+        function applyUserSession(user) {
+            document.getElementById('displayDriverName').textContent = user.name;
+            document.getElementById('displayUserRole').textContent = user.role.toUpperCase();
+            document.getElementById('userDisplayName').textContent = user.name;
+
+            document.getElementById('loginSection').classList.add('d-none');
+            document.getElementById('sidebarSection').classList.remove('d-none');
+            document.getElementById('appContainer').classList.remove('d-none');
+
+            const adminMenus = document.querySelectorAll('.admin-only');
+            if (user.role === 'admin') {
+                adminMenus.forEach(menu => menu.classList.remove('d-none'));
+                switchTab('dashboardTab', document.getElementById('menuDashboard'));
+                renderDashboard();
+            } else {
+                adminMenus.forEach(menu => menu.classList.add('d-none'));
+                switchTab('entryTab', document.getElementById('menuEntry'));
+            }
+
+            initScanner();
+        }
+
         function logout() {
             currentUser = null;
-            localStorage.removeItem('currentUser');
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.clear().catch(() => {});
+            }
             document.getElementById('loginId').value = "";
             document.getElementById('loginPassword').value = "";
+            document.getElementById('sidebarSection').classList.add('d-none');
             document.getElementById('appContainer').classList.add('d-none');
             document.getElementById('loginSection').classList.remove('d-none');
         }
 
-        // --- AUDIO GENERATOR ---
-        let audioCtx = null;
-        function initAudioContext() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx && audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.nav-link-sidebar').forEach(a => a.classList.remove('active'));
+            if (el) el.classList.add('active');
+
+            document.querySelectorAll('.tab-pane').forEach(tab => tab.classList.remove('show', 'active'));
+            document.getElementById(tabId).classList.add('show', 'active');
         }
 
-        function playBeepSound() {
-            try {
-                initAudioContext();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = "sine";
-                osc.frequency.setValueAtTime(1200, audioCtx.currentTime); 
-                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.12);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.12);
-            } catch(e) {
-                console.log("Audio feedback failed:", e);
-            }
-        }
-
-        // --- PRODUCT DATABASE ---
-        const productDatabase = {
-            "7517846597753": { "name": "Beef Stroganoff with Penne Pasta", "canteenPrice": 1.625, "trolleyPrice": 1.575 },
-            "7517846597241": { "name": "Butter Chicken", "canteenPrice": 1.411, "trolleyPrice": 1.361 },
-            "7517846597142": { "name": "Chicken Caesar Salad", "canteenPrice": 1.268, "trolleyPrice": 1.268 },
-            "7517846598408": { "name": "Chicken Club Sandwich", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
-            "7517846598392": { "name": "Chicken Shish Taouk Wrap", "canteenPrice": 0.78, "trolleyPrice": 0.78 },
-            "7517846598231": { "name": "Chipotle Egg Burger", "canteenPrice": 0.813, "trolleyPrice": 0.813 },
-            "7517846597180": { "name": "Classic Beef Burger", "canteenPrice": 1.294, "trolleyPrice": 1.294 },
-            "7517846598330": { "name": "Creamy Chicken Caesar Wrap", "canteenPrice": 0.748, "trolleyPrice": 0.748 },
-            "7517846598286": { "name": "Creamy Shrimp Caesar Salad", "canteenPrice": 1.347, "trolleyPrice": 1.347 },
-            "7517846598163": { "name": "Egg & Turkey Croissant", "canteenPrice": 0.813, "trolleyPrice": 0.813 },
-            "7517846598361": { "name": "Egg Wrap", "canteenPrice": 0.585, "trolleyPrice": 0.585 },
-            "7517846598378": { "name": "Falafel Wrap", "canteenPrice": 0.423, "trolleyPrice": 0.423 },
-            "7517846598309": { "name": "Feta Spinach Strawberry Salad", "canteenPrice": 0.618, "trolleyPrice": 0.618 },
-            "7517846597333": { "name": "Grilled Halloumi Sandwich", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
-            "5904223118410": { "name": "Halloumi Sandwich", "canteenPrice": 0.618, "trolleyPrice": 0.618 },
-            "7517846598347": { "name": "Halloumi Wrap", "canteenPrice": 0.618, "trolleyPrice": 0.618 },
-            "7517846598385": { "name": "Labna Potato Wrap", "canteenPrice": 0.455, "trolleyPrice": 0.455 },
-            "5904223218417": { "name": "Labna Sandwich", "canteenPrice": 0.553, "trolleyPrice": 0.553 },
-            "7517846598293": { "name": "Maple Kale Salad", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
-            "5904293218454": { "name": "Margherita Pizza", "canteenPrice": 0.585, "trolleyPrice": 0.585 },
-            "7517846598255": { "name": "Marinara Chicken Sandwich", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
-            "7517846597906": { "name": "Mexican Nacho Salad OI", "canteenPrice": 1.008, "trolleyPrice": 0.958 },
-            "7517846598156": { "name": "Mix Cheese Croissant", "canteenPrice": 0.748, "trolleyPrice": 0.748 },
-            "5904223219452": { "name": "Mixed Cheese Pizza", "canteenPrice": 0.644, "trolleyPrice": 0.644 },
-            "7517846598187": { "name": "Mozzarella Melt", "canteenPrice": 0.65, "trolleyPrice": 0.65 },
-            "7517846598316": { "name": "Numou French Salad", "canteenPrice": 0.715, "trolleyPrice": 0.715 },
-            "7517846597975": { "name": "Numou Mini Cookies (5 pieces)", "canteenPrice": 0.65, "trolleyPrice": 0.65 },
-            "7517846598422": { "name": "Qaimar & Asal", "canteenPrice": 0.39, "trolleyPrice": 0.39 },
-            "7517846598279": { "name": "Santa Fe Chicken Salad", "canteenPrice": 1.625, "trolleyPrice": 1.51 },
-            "5904223118441": { "name": "Spinach Feta Pizza", "canteenPrice": 0.585, "trolleyPrice": 0.585 },
-            "7517846597678": { "name": "Tapenade Halloumi Sandwich", "canteenPrice": 1.04, "trolleyPrice": 1.04 },
-            "7517846598262": { "name": "Thai Chicken Salad", "canteenPrice": 1.625, "trolleyPrice": 1.38 },
-            "7517846598323": { "name": "Thai Salad Pot", "canteenPrice": 0.78, "trolleyPrice": 0.78 },
-            "5904223218400": { "name": "Turkey Cheddar Croissant", "canteenPrice": 0.644, "trolleyPrice": 0.644 },
-            "7517846598415": { "name": "Turkey Club Sandwich", "canteenPrice": 1.138, "trolleyPrice": 1.138 },
-            "7517846598149": { "name": "Turkey Croissant", "canteenPrice": 0.813, "trolleyPrice": 0.813 },
-            "7517846598224": { "name": "Turkey Melt", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
-            "5901234184090": { "name": "Turkey Sandwich", "canteenPrice": 0.618, "trolleyPrice": 0.618 },
-            "7517846598439": { "name": "Turkey with Apricot Jam", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
-            "7517846597630": { "name": "Turkey with Creamy Chutney Wrap", "canteenPrice": 1.203, "trolleyPrice": 1.202 },
-            "7517846598354": { "name": "Turkey Wrap", "canteenPrice": 0.748, "trolleyPrice": 0.748 }
-        };
-
-        // --- BRANCHES DATABASE ---
-        const branchDatabase = {
-            "Canteen": [
-                "Waha (Canteen)", "Zain Headquater (Canteen)", "Ministry of Electricity and Water Subhan (Canteen)",
-                "Public Authority of Housing Welfare shuwaikh (Canteen)", "Rihab (Canteen)", "Shuaiba Equate (Canteen)",
-                "Ahmadi Equate (Canteen)", "Awqaf Shuwaikh (Canteen)", "Kuwait University Khaldiya (Canteen)",
-                "Siddque (Canteen)", "Shadadiya KU Engineering (Canteen)", "International University of Kuwait(Canteen)",
-                "Jaber ali Stadium (Canteen)", "Kuwait City - Baitak Tower (Canteen)", "Kuwait City Mazaya tower (Canteen)",
-                "Shaab (Canteen)"
-            ],
-            "Trolley": [
-                "Jahra - Alfa (TR)", "Oyoon - Oula (TR)", "Sulaibiya (TR)", "Saad Al Abdullah - KNPC (TR)",
-                "Shuwaikh - Zain Hospital (TR)", "Zahra - KNPC (TR)", "Shuwaikh - Alfa (TR)", "Ministry of Public Works (TR)",
-                "Abdullah Al Salem (TR)", "Shuwaikh - Zain Head Quarter (TR)", "Abdally KNPC (TR)", "West Shuaiba - Oula (TR)",
-                "Mina Abdullah Alfa - 43 (TR)", "Mubarak Al Kabeer - Oula (TR)", "Ahmedi - Saka - Road 77 (TR)", "Hadiya - Alfa (TR)",
-                "Al Admi Arkan AlKuwait (TR)", "Abu Halifa - Alfa (TR)", "Rahal-Nuwaiseeb (TR)", "Mesayel - Alfa (TR)",
-                "Messila - Oula (TR)", "Sabah Al Salem - Oula 70 (TR)", "Sabah Al Salem Block 3 (TR)", "Sabah Club Qurain Blk 4 (TR)",
-                "Sabah Al Ahmed - KNPC140 (TR)", "Sabah Al Ahmed - KNPC149 (TR)", "Sabah Al Ahmed - KNPC142 (TR)", "Khaldiya - Oula (TR)",
-                "Qurtuba - Oula (TR)", "Hateen - Alfa (TR)", "Kaifan - Kuwait Club (TR)", "Shuhada - Oula (TR)", "Omariya - Oula (TR)",
-                "Abdullah Mubarak (TR)", "Shadadiya - Oula 52 (TR)", "Al Nasser Club (TR)", "Shadadiya - KU College of Admin(Education)   (TR)",
-                "Shadadiya - KU College of Arts (Literacy)   (TR)", "Shadadiya - KU Life Science (TR)", "Bnied Algar - Salam Hospital (TR)",
-                "Salmiya - AL Bidaa (TR)", "Salmiya Alfa (TR)", "Salmiya - Oula Block 10 (TR) - 71", "Salmiya - Oula Block 11 (TR) - 14",
-                "Adan Oula- 1187 (TR)", "Al Arabi Sport Club (TR)", "Bayan - Oula (TR)", "Amiri Hospital (TR)",
-                "Kuwait City - Kipco Tower (TR)", "Shaab - Alfa (TR)", "Mansouriyah - Alfa (TR)", "Daiya - Oula (TR)",
-                "Kuwait City - Baitak Tower (TR)", "Kuwait City - Trolley Ministry Complex (TR)", "Kuwait City - Central Bank of Kuwait (TR)",
-                "Kuwait City - NBK Head Office (TR)", "Jabriya - KU College of Medicine (TR)", "West Mishref - Oula  (TR)",
-                "Marina Crecent (TR)", "Al Arabi Sport Club"
-            ]
-        };
-
-        let currentInvoiceItems = [];
-        let html5QrcodeScanner = null;
-        let lastScannedBarcode = null;
-        let lastScanTime = 0;
-
-        function onBrandChange() {
-            resetItemDetails();
-            document.getElementById('branch').value = "";
-            document.getElementById('branchSuggestions').style.display = "none";
-        }
-
-        // --- CUSTOM AUTOCOMPLETE FOR BRANCHES ---
-        function filterBranchOptions() {
-            const brand = document.getElementById('brand').value;
-            const inputVal = document.getElementById('branch').value.toLowerCase();
-            const suggestionsContainer = document.getElementById('branchSuggestions');
-
-            if (!brand) {
-                alert("Please select a Brand first!");
-                document.getElementById('branch').value = "";
-                return;
-            }
-
-            const branches = branchDatabase[brand] || [];
-            const matches = branches.filter(b => b.toLowerCase().includes(inputVal));
-
-            suggestionsContainer.innerHTML = "";
-            if (matches.length > 0) {
-                matches.forEach(branchName => {
-                    const div = document.createElement('div');
-                    div.className = 'autocomplete-suggestion';
-                    div.textContent = branchName;
-                    
-                    const selectOption = (e) => {
-                        e.preventDefault();
-                        document.getElementById('branch').value = branchName;
-                        suggestionsContainer.style.display = 'none';
-                    };
-
-                    div.addEventListener('touchstart', selectOption);
-                    div.addEventListener('click', selectOption);
-
-                    suggestionsContainer.appendChild(div);
-                });
-                suggestionsContainer.style.display = 'block';
-            } else {
-                suggestionsContainer.style.display = 'none';
-            }
-        }
-
-        // --- CUSTOM AUTOCOMPLETE FOR ITEMS ---
+        // ITEM SEARCH AUTOCOMPLETE
         function filterItemOptions() {
-            const inputVal = document.getElementById('itemName').value.toLowerCase();
-            const suggestionsContainer = document.getElementById('itemSuggestions');
-            const brand = document.getElementById('brand').value;
+            const input = document.getElementById('itemName').value.toLowerCase();
+            const box = document.getElementById('itemSuggestions');
+            box.innerHTML = '';
 
-            const items = Object.values(productDatabase).map(i => i.name);
-            const matches = items.filter(i => i.toLowerCase().includes(inputVal));
-
-            suggestionsContainer.innerHTML = "";
-            if (matches.length > 0 && inputVal.length > 0) {
-                matches.forEach(itemName => {
+            const matches = masterItems.filter(i => i.name.toLowerCase().includes(input) || i.barcode.includes(input));
+            if (matches.length > 0) {
+                box.style.display = 'block';
+                matches.forEach(item => {
                     const div = document.createElement('div');
                     div.className = 'autocomplete-suggestion';
-                    div.textContent = itemName;
-
-                    const selectOption = (e) => {
-                        e.preventDefault();
-                        if (!brand) {
-                            alert("Please select a Brand first to fetch the correct price!");
-                            suggestionsContainer.style.display = 'none';
-                            return;
-                        }
-                        document.getElementById('itemName').value = itemName;
-                        suggestionsContainer.style.display = 'none';
-                        onItemSearchChange(itemName);
+                    div.innerHTML = `<strong>${item.name}</strong> <small class="text-muted">(${item.barcode})</small>`;
+                    div.onclick = () => {
+                        selectItem(item);
+                        box.style.display = 'none';
                     };
-
-                    div.addEventListener('touchstart', selectOption);
-                    div.addEventListener('click', selectOption);
-
-                    suggestionsContainer.appendChild(div);
+                    box.appendChild(div);
                 });
-                suggestionsContainer.style.display = 'block';
             } else {
-                suggestionsContainer.style.display = 'none';
+                box.style.display = 'none';
             }
         }
 
-        function onItemSearchChange(typedName) {
-            const brand = document.getElementById('brand').value;
-            const matchedEntry = Object.entries(productDatabase).find(([barcode, data]) => data.name === typedName);
-            
-            if (matchedEntry) {
-                const itemData = matchedEntry[1];
-                const price = (brand === "Canteen") ? itemData.canteenPrice : itemData.trolleyPrice;
-                document.getElementById('unitPrice').value = price;
-                document.getElementById('manualBarcode').value = matchedEntry[0];
-            }
+        function selectItem(item) {
+            document.getElementById('itemName').value = item.name;
+            document.getElementById('manualBarcode').value = item.barcode;
+            document.getElementById('unitPrice').value = item.price.toFixed(3);
         }
 
-        // --- SCANNER LOGIC ---
+        // CAMERA SCANNER WITH SOUND BEEP
         function initScanner() {
-            if (!html5QrcodeScanner) {
-                html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 25, qrbox: 250 });
-                html5QrcodeScanner.render(onScanSuccess);
+            if (document.getElementById("reader")) {
+                html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 150 } });
+                html5QrcodeScanner.render((decodedText) => {
+                    playScanBeep();
+                    const foundItem = masterItems.find(i => i.barcode === decodedText);
+                    if (foundItem) {
+                        selectItem(foundItem);
+                    } else {
+                        document.getElementById('manualBarcode').value = decodedText;
+                    }
+                }, () => {});
             }
         }
 
-        function onScanSuccess(decodedText, decodedResult) {
-            const now = Date.now();
-            if (decodedText === lastScannedBarcode && (now - lastScanTime) < 1200) {
-                return; 
-            }
-            lastScannedBarcode = decodedText;
-            lastScanTime = now;
-
-            playBeepSound();
-            document.getElementById('manualBarcode').value = decodedText;
-            lookupBarcode(decodedText);
-        }
-
-        function lookupBarcode(barcode) {
-            const brand = document.getElementById('brand').value;
-            if (!brand) {
-                alert("Please select a Brand (Canteen or Trolley) first!");
-                return;
-            }
-
-            const cleanBarcode = barcode.trim();
-            const item = productDatabase[cleanBarcode];
-             
-            if (item) {
-                document.getElementById('itemName').value = item.name;
-                const price = (brand === "Canteen") ? item.canteenPrice : item.trolleyPrice;
-                document.getElementById('unitPrice').value = price;
-            }
-        }
-
-        function resetItemDetails() {
-            document.getElementById('itemName').value = "";
-            document.getElementById('unitPrice').value = "";
-            document.getElementById('manualBarcode').value = "";
-            document.getElementById('qty').value = "1";
-            document.getElementById('returnReason').value = "Expired";
-            document.getElementById('prodDate').value = "";
-        }
-
+        // ADD ITEM TO RETURN ENTRY LIST
         function addReturnItem() {
             const name = document.getElementById('itemName').value;
-            const price = document.getElementById('unitPrice').value;
-            const qty = document.getElementById('qty').value;
+            const barcode = document.getElementById('manualBarcode').value;
+            const price = parseFloat(document.getElementById('unitPrice').value || 0);
+            const qty = parseInt(document.getElementById('qty').value || 1);
             const reason = document.getElementById('returnReason').value;
-            const prodDate = document.getElementById('prodDate').value;
-            const retDate = document.getElementById('returnDateHeader').value;
 
-            if (!name || !price || !qty || !prodDate || !retDate) {
-                alert("Please select/scan a valid item, check price/qty, select Return Date, and provide a production date.");
-                return;
-            }
+            if (!name) return alert("Please select an item first!");
 
-            const itemData = { 
-                name, 
-                price: parseFloat(price), 
-                qty: parseInt(qty), 
-                reason: reason,
-                prodDate,
-                returnDate: retDate
-            };
-            
-            currentInvoiceItems.push(itemData);
-             
-            updateItemsUI();
-            resetItemDetails();
-            lastScannedBarcode = null;
+            const total = price * qty;
+            currentReturnItems.push({ name, barcode, price, qty, reason, total });
+            renderItemList();
+
+            document.getElementById('itemName').value = '';
+            document.getElementById('manualBarcode').value = '';
+            document.getElementById('unitPrice').value = '';
+            document.getElementById('qty').value = 1;
         }
 
-        function updateItemsUI() {
+        function renderItemList() {
             const list = document.getElementById('itemList');
-            list.innerHTML = "";
-            let runningInvoiceTotal = 0;
+            list.innerHTML = '';
+            let grandTotal = 0;
 
-            currentInvoiceItems.forEach((item, index) => {
-                const totalItemPrice = item.price * item.qty;
-                runningInvoiceTotal += totalItemPrice;
-
-                list.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">
+            currentReturnItems.forEach((item, index) => {
+                grandTotal += item.total;
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                li.innerHTML = `
                     <div>
-                        <b>${item.name}</b><br>
-                        <small class="text-muted">Ret Date: ${item.returnDate} | Prod Date: ${item.prodDate} | Qty: ${item.qty}<br>Reason: <b class="text-dark">${item.reason}</b> @ KWD ${item.price.toFixed(3)}</small>
+                        <strong>${item.name}</strong> (${item.reason})<br>
+                        <small>${item.qty} x KWD ${item.price.toFixed(3)}</small>
                     </div>
-                    <div class="text-end">
-                        <span><b>KWD ${totalItemPrice.toFixed(3)}</b></span><br>
-                        <button class="btn btn-sm btn-link text-danger p-0" style="font-size:0.8rem;" onclick="removeItemFromInvoice(${index})">Remove</button>
+                    <div>
+                        <span class="fw-bold me-2">KWD ${item.total.toFixed(3)}</span>
+                        <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="removeReturnItem(${index})">&times;</button>
                     </div>
-                </li>`;
+                `;
+                list.appendChild(li);
             });
 
-            document.getElementById('invoiceTotalDisplay').textContent = runningInvoiceTotal.toFixed(3);
+            document.getElementById('invoiceTotalDisplay').textContent = grandTotal.toFixed(3);
         }
 
-        function removeItemFromInvoice(index) {
-            currentInvoiceItems.splice(index, 1);
-            updateItemsUI();
+        function removeReturnItem(index) {
+            currentReturnItems.splice(index, 1);
+            renderItemList();
         }
 
-        // --- SAVE INVOICE TO GOOGLE APPS SCRIPT ---
         function saveFullInvoice() {
-            const invoiceNo = document.getElementById('invoiceNo').value;
-            const brand = document.getElementById('brand').value;
+            if (currentReturnItems.length === 0) return alert("Please add at least one item!");
             const branch = document.getElementById('branch').value;
+            if (!branch) return alert("Please select a branch first!");
 
-            if (!invoiceNo || !brand || !branch || currentInvoiceItems.length === 0) {
-                alert("Please fill Invoice No, Brand, Branch, and add at least one item.");
-                return;
+            const rDate = document.getElementById('returnDateHeader').value;
+            const invNo = document.getElementById('invoiceNo').value || "RET-GEN";
+            const brand = document.getElementById('brand').value;
+
+            // Save each item to master return store
+            currentReturnItems.forEach(item => {
+                returnData.push({
+                    returnDate: rDate,
+                    invoiceNo: invNo,
+                    brand: brand,
+                    branchName: branch,
+                    barcode: item.barcode,
+                    itemName: item.name,
+                    qty: item.qty,
+                    unitPrice: item.price,
+                    total: item.total,
+                    driver: currentUser.name
+                });
+            });
+
+            alert("Return Delivery Note saved successfully and synced with Dashboard!");
+            currentReturnItems = [];
+            renderItemList();
+            if (currentUser.role === 'admin') renderDashboard();
+        }
+
+        // SALES PORTAL CALCULATIONS & ENTRY
+        function calcSaleTotal() {
+            const qty = parseFloat(document.getElementById('saleQty').value || 0);
+            const price = parseFloat(document.getElementById('saleUnitPrice').value || 0);
+            document.getElementById('saleTotal').value = (qty * price).toFixed(3);
+        }
+
+        function addSingleSaleRecord() {
+            const sentDate = document.getElementById('saleSentDate').value;
+            const sentInvoice = document.getElementById('saleSentInvoice').value;
+            const brand = document.getElementById('saleBrand').value;
+            const branchName = document.getElementById('saleBranch').value;
+            const barcode = document.getElementById('saleBarcode').value;
+            const itemName = document.getElementById('saleItemName').value;
+            const qty = parseInt(document.getElementById('saleQty').value || 0);
+            const unitPrice = parseFloat(document.getElementById('saleUnitPrice').value || 0);
+            const rsp = parseFloat(document.getElementById('saleRSP').value || 0);
+            const total = parseFloat(document.getElementById('saleTotal').value || 0);
+
+            if (!sentInvoice || !branchName || !itemName) {
+                return alert("Please fill in Sent Invoice, Branch Name, and Item Name!");
             }
 
-            const saveBtn = document.getElementById('saveInvoiceBtn');
-            saveBtn.disabled = true;
-            saveBtn.textContent = "Uploading Data to Cloud...";
+            salesData.push({ sentDate, sentInvoice, brand, branchName, barcode, itemName, qty, unitPrice, rsp, total });
+            renderSalesTable();
+            alert("Single Sale Record Added Successfully!");
 
-            let payload = [];
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString('en-US', { hour12: true });
+            // Clear inputs
+            document.getElementById('saleSentInvoice').value = '';
+            document.getElementById('saleBranch').value = '';
+            document.getElementById('saleBarcode').value = '';
+            document.getElementById('saleItemName').value = '';
+            document.getElementById('saleQty').value = 1;
+            document.getElementById('saleUnitPrice').value = '';
+            document.getElementById('saleRSP').value = '';
+            document.getElementById('saleTotal').value = '';
+        }
 
-            currentInvoiceItems.forEach(item => {
-                payload.push({
-                    driverName: currentUser ? currentUser.name : "Unknown",
-                    returnDate: item.returnDate,
-                    productionDate: item.prodDate,
-                    scanTime: timeStr,
-                    invoiceNo: invoiceNo,
-                    brand: brand,
-                    branch: branch,
-                    itemName: item.name,
-                    unitPrice: item.price,
-                    qty: item.qty,
-                    returnReason: item.reason,
-                    totalPrice: (item.price * item.qty).toFixed(3)
-                });
-            });
+        function uploadSalesExcel() {
+            const fileInput = document.getElementById('salesExcelInput');
+            if (!fileInput.files.length) return alert("Please select an Excel file first!");
 
-            fetch(GOOGLE_SCRIPT_URL, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            })
-            .then(() => {
-                alert("Invoice Saved & Synced Centralized Online Successfully!");
-                currentInvoiceItems = [];
-                updateItemsUI();
-                document.getElementById('invoiceNo').value = "";
-                document.getElementById('branch').value = "";
-                saveBtn.disabled = false;
-                saveBtn.textContent = "Finalize & Save Invoice";
-            })
-            .catch(error => {
-                console.error('Error saving invoice:', error);
-                alert("Failed to sync invoice to cloud. Check internet connection.");
-                saveBtn.disabled = false;
-                saveBtn.textContent = "Finalize & Save Invoice";
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+                    if (sheetData.length > 0) {
+                        salesData = sheetData.map(row => ({
+                            sentDate: row['Sent Date'] || row['sentDate'] || new Date().toISOString().split('T')[0],
+                            sentInvoice: row['Sent Invoice'] || row['sentInvoice'] || 'INV-EXCEL',
+                            brand: row['Brand'] || row['brand'] || 'General',
+                            branchName: row['Branch name'] || row['Branch Name'] || row['branchName'] || 'General Branch',
+                            barcode: row['Barcode'] || row['barcode'] || '0000',
+                            itemName: row['Item Name'] || row['itemName'] || 'General Item',
+                            qty: parseInt(row['Qty'] || row['qty'] || 0),
+                            unitPrice: parseFloat(row['Unit Price'] || row['unitPrice'] || 0),
+                            rsp: parseFloat(row['RSP'] || row['rsp'] || 0),
+                            total: parseFloat(row['Total'] || row['total'] || 0)
+                        }));
+
+                        renderSalesTable();
+                        alert("Sales Excel Data Imported Successfully!");
+                        renderDashboard();
+                    } else {
+                        alert("The uploaded file contains no rows.");
+                    }
+                } catch (err) {
+                    alert("Error parsing Excel file. Please ensure correct format.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function renderSalesTable() {
+            const tbody = document.getElementById('salesTableBody');
+            tbody.innerHTML = '';
+            document.getElementById('salesCount').textContent = salesData.length;
+
+            salesData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.sentDate}</td>
+                    <td class="fw-bold">${row.sentInvoice}</td>
+                    <td>${row.brand}</td>
+                    <td>${row.branchName}</td>
+                    <td>${row.barcode}</td>
+                    <td>${row.itemName}</td>
+                    <td>${row.qty}</td>
+                    <td>${row.unitPrice.toFixed(3)}</td>
+                    <td>${row.rsp.toFixed(3)}</td>
+                    <td class="fw-bold text-success">${row.total.toFixed(3)}</td>
+                `;
+                tbody.appendChild(tr);
             });
         }
 
-        // --- ADMIN EXPORT FUNCTION ---
+        // ADMIN DASHBOARD & ADVANCED REPORTING (TOP 15 KPIS)
+        function renderDashboard() {
+            if (currentUser && currentUser.role !== 'admin') return;
+
+            const fromDate = document.getElementById('filterFromDate').value;
+            const toDate = document.getElementById('filterToDate').value;
+            const branchFilter = document.getElementById('filterBranch').value.toLowerCase();
+            const itemFilter = document.getElementById('filterItem').value.toLowerCase();
+
+            // Filter Sales Data
+            let filteredSales = salesData.filter(s => {
+                let match = true;
+                if (fromDate && s.sentDate < fromDate) match = false;
+                if (toDate && s.sentDate > toDate) match = false;
+                if (branchFilter && !s.branchName.toLowerCase().includes(branchFilter)) match = false;
+                if (itemFilter && !s.itemName.toLowerCase().includes(itemFilter)) match = false;
+                return match;
+            });
+
+            // Filter Return Data
+            let filteredReturns = returnData.filter(r => {
+                let match = true;
+                if (fromDate && r.returnDate < fromDate) match = false;
+                if (toDate && r.returnDate > toDate) match = false;
+                if (branchFilter && !r.branchName.toLowerCase().includes(branchFilter)) match = false;
+                if (itemFilter && !r.itemName.toLowerCase().includes(itemFilter)) match = false;
+                return match;
+            });
+
+            // Calculate Overall KPI Totals
+            const totalGrossSales = filteredSales.reduce((acc, s) => acc + s.total, 0);
+            const totalReturnAmt = filteredReturns.reduce((acc, r) => acc + r.total, 0);
+            const netSalesVal = totalGrossSales - totalReturnAmt;
+            const returnRatioVal = totalGrossSales > 0 ? ((totalReturnAmt / totalGrossSales) * 100) : 0;
+            const totalReturnedQtyVal = filteredReturns.reduce((acc, r) => acc + r.qty, 0);
+
+            document.getElementById('kpiGrossSales').textContent = totalGrossSales.toFixed(3);
+            document.getElementById('kpiTotalReturns').textContent = totalReturnAmt.toFixed(3);
+            document.getElementById('kpiNetSales').textContent = netSalesVal.toFixed(3);
+            document.getElementById('kpiReturnRatio').textContent = returnRatioVal.toFixed(1) + '%';
+            document.getElementById('kpiReturnedQty').textContent = totalReturnedQtyVal;
+
+            // TOP 15 BEST SELLING BRANCHES
+            const branchMap = {};
+            filteredSales.forEach(s => {
+                if (!branchMap[s.branchName]) branchMap[s.branchName] = { sales: 0, returns: 0 };
+                branchMap[s.branchName].sales += s.total;
+            });
+            filteredReturns.forEach(r => {
+                if (!branchMap[r.branchName]) branchMap[r.branchName] = { sales: 0, returns: 0 };
+                branchMap[r.branchName].returns += r.total;
+            });
+
+            const top15Branches = Object.keys(branchMap)
+                .map(b => ({
+                    branch: b,
+                    sales: branchMap[b].sales,
+                    returns: branchMap[b].returns,
+                    net: branchMap[b].sales - branchMap[b].returns
+                }))
+                .sort((a, b) => b.net - a.net)
+                .slice(0, 15);
+
+            // TOP 15 BEST SELLING ITEMS
+            const itemMap = {};
+            filteredSales.forEach(s => {
+                if (!itemMap[s.itemName]) itemMap[s.itemName] = { qty: 0, sales: 0 };
+                itemMap[s.itemName].qty += s.qty;
+                itemMap[s.itemName].sales += s.total;
+            });
+
+            const top15Items = Object.keys(itemMap)
+                .map(i => ({
+                    item: i,
+                    qty: itemMap[i].qty,
+                    sales: itemMap[i].sales
+                }))
+                .sort((a, b) => b.sales - a.sales)
+                .slice(0, 15);
+
+            // Render Branch Table
+            document.getElementById('topBranchesTable').innerHTML = top15Branches.map((b, idx) => `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td class="text-start fw-bold">${b.branch}</td>
+                    <td class="text-primary fw-bold">${b.sales.toFixed(3)}</td>
+                    <td class="text-danger">${b.returns.toFixed(3)}</td>
+                    <td class="text-success fw-bold">${b.net.toFixed(3)}</td>
+                </tr>
+            `).join('');
+
+            // Render Item Table
+            document.getElementById('topItemsTable').innerHTML = top15Items.map((item, idx) => `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td class="text-start fw-bold">${item.item}</td>
+                    <td class="fw-bold">${item.qty}</td>
+                    <td class="text-success fw-bold">${item.sales.toFixed(3)}</td>
+                </tr>
+            `).join('');
+
+            // Render Top Branches Chart
+            if (branchChartInstance) branchChartInstance.destroy();
+            branchChartInstance = new Chart(document.getElementById('topBranchesChart'), {
+                type: 'bar',
+                data: {
+                    labels: top15Branches.map(b => b.branch.replace('Trolley - ', '').replace('Canteen - ', '')),
+                    datasets: [
+                        { label: 'Net Sales (KWD)', data: top15Branches.map(b => b.net), backgroundColor: '#1e3c72' },
+                        { label: 'Returns (KWD)', data: top15Branches.map(b => b.returns), backgroundColor: '#dc3545' }
+                    ]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            // Render Top Items Chart
+            if (itemChartInstance) itemChartInstance.destroy();
+            itemChartInstance = new Chart(document.getElementById('topItemsChart'), {
+                type: 'bar',
+                data: {
+                    labels: top15Items.map(i => i.item),
+                    datasets: [{ label: 'Sales (KWD)', data: top15Items.map(i => i.sales), backgroundColor: '#198754' }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } } }
+            });
+        }
+
+        // EXPORT FULL EXECUTIVE REPORT TO EXCEL
         function exportToExcel() {
-            const exportBtn = document.getElementById('exportBtn');
-            exportBtn.disabled = true;
-            exportBtn.textContent = "Fetching Data for Export...";
+            const exportData = salesData.map(sale => {
+                const matchedReturns = returnData.filter(r => r.invoiceNo === sale.sentInvoice && r.itemName === sale.itemName);
+                const returnQty = matchedReturns.reduce((acc, r) => acc + r.qty, 0);
+                const returnVal = matchedReturns.reduce((acc, r) => acc + r.total, 0);
 
-            fetch(GOOGLE_SCRIPT_URL)
-                .then(res => res.json())
-                .then(data => {
-                    if (!data || data.length === 0) {
-                        alert("No data available to export.");
-                        exportBtn.disabled = false;
-                        exportBtn.textContent = "Export All Data to Excel (CSV)";
-                        return;
-                    }
+                return {
+                    "Sent Date": sale.sentDate,
+                    "Sent Invoice": sale.sentInvoice,
+                    "Brand": sale.brand,
+                    "Branch name": sale.branchName,
+                    "Barcode": sale.barcode,
+                    "Item Name": sale.itemName,
+                    "Qty Sold": sale.qty,
+                    "Unit Price (KWD)": sale.unitPrice,
+                    "RSP (KWD)": sale.rsp,
+                    "Gross Total (KWD)": sale.total,
+                    "Returned Qty": returnQty,
+                    "Return Total (KWD)": returnVal,
+                    "Net Revenue (KWD)": sale.total - returnVal
+                };
+            });
 
-                    const headers = Object.keys(data[0]);
-                    const csvRows = [headers.join(",")];
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Sales_Return_Report");
 
-                    data.forEach(row => {
-                        const values = headers.map(header => {
-                            const val = row[header] !== undefined ? row[header] : "";
-                            return `"${String(val).replace(/"/g, '""')}"`;
-                        });
-                        csvRows.push(values.join(","));
-                    });
-
-                    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Returns_Export_${new Date().toISOString().split('T')[0]}.csv`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-
-                    exportBtn.disabled = false;
-                    exportBtn.textContent = "Export All Data to Excel (CSV)";
-                })
-                .catch(err => {
-                    console.error("Export error:", err);
-                    alert("Could not fetch export data from Google Sheets.");
-                    exportBtn.disabled = false;
-                    exportBtn.textContent = "Export All Data to Excel (CSV)";
-                });
+            XLSX.writeFile(workbook, `Sales_Return_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
         }
     </script>
 </body>
