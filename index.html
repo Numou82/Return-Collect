@@ -156,20 +156,32 @@
                     <!-- REPORT FILTERS BAR -->
                     <div class="bg-light p-3 rounded mb-4 border">
                         <div class="row g-2 align-items-end">
-                            <div class="col-md-3 col-6">
+                            <div class="col-md-2 col-6">
                                 <label class="form-label small fw-bold">From Date</label>
                                 <input type="date" id="filterFromDate" class="form-control form-control-sm" onchange="renderDashboard()">
                             </div>
-                            <div class="col-md-3 col-6">
+                            <div class="col-md-2 col-6">
                                 <label class="form-label small fw-bold">To Date</label>
                                 <input type="date" id="filterToDate" class="form-control form-control-sm" onchange="renderDashboard()">
                             </div>
-                            <div class="col-md-3 col-6">
-                                <label class="form-label small fw-bold">Search Particular Branch</label>
+                            <div class="col-md-2 col-6">
+                                <label class="form-label small fw-bold">Brand</label>
+                                <select id="filterBrand" class="form-select form-select-sm" onchange="renderDashboard()">
+                                    <option value="">All Brands</option>
+                                    <option value="Canteen">Canteen</option>
+                                    <option value="Trolley">Trolley</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 col-6">
+                                <label class="form-label small fw-bold">Search Branch</label>
                                 <input type="text" id="filterBranch" class="form-control form-control-sm" placeholder="Type Branch Name..." oninput="renderDashboard()">
                             </div>
-                            <div class="col-md-3 col-6">
-                                <label class="form-label small fw-bold">Search Particular Item</label>
+                            <div class="col-md-2 col-6">
+                                <label class="form-label small fw-bold">Location</label>
+                                <input type="text" id="filterLocation" class="form-control form-control-sm" placeholder="Type Location..." oninput="renderDashboard()">
+                            </div>
+                            <div class="col-md-2 col-6">
+                                <label class="form-label small fw-bold">Search Item</label>
                                 <input type="text" id="filterItem" class="form-control form-control-sm" placeholder="Type Item Name..." oninput="renderDashboard()">
                             </div>
                         </div>
@@ -248,6 +260,39 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- BRAND BREAKDOWN SECTION -->
+                    <div class="row g-4 mb-4">
+                        <!-- CANTEEN REPORT -->
+                        <div class="col-md-6">
+                            <div class="card shadow-sm p-3 border-0 bg-light">
+                                <h6 class="fw-bold text-info"><i class="fas fa-utensils"></i> Canteen Report</h6>
+                                <div class="table-responsive mt-2" style="max-height:200px; overflow-y:auto;">
+                                    <table class="table table-sm table-hover text-center small">
+                                        <thead class="table-info sticky-top">
+                                            <tr><th>Branch</th><th>Sales (KWD)</th><th>Returns (KWD)</th><th>Net (KWD)</th></tr>
+                                        </thead>
+                                        <tbody id="canteenTable"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TROLLEY REPORT -->
+                        <div class="col-md-6">
+                            <div class="card shadow-sm p-3 border-0 bg-light">
+                                <h6 class="fw-bold text-warning"><i class="fas fa-shopping-cart"></i> Trolley Report</h6>
+                                <div class="table-responsive mt-2" style="max-height:200px; overflow-y:auto;">
+                                    <table class="table table-sm table-hover text-center small">
+                                        <thead class="table-warning sticky-top">
+                                            <tr><th>Branch</th><th>Sales (KWD)</th><th>Returns (KWD)</th><th>Net (KWD)</th></tr>
+                                        </thead>
+                                        <tbody id="trolleyTable"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- TAB 2: RETURN ENTRY (ACCESSIBLE BY DRIVERS & ADMIN) -->
@@ -255,15 +300,15 @@
                     <h5 class="mb-3 text-secondary fw-bold"><i class="fas fa-plus-circle"></i> Create Return Delivery Note</h5>
 
                     <div class="row g-2 mb-3">
-                        <div class="col-md-3 col-6">
+                        <div class="col-md-2 col-6">
                             <label class="form-label small fw-bold">Return Date</label>
                             <input type="date" id="returnDateHeader" class="form-control form-control-sm">
                         </div>
-                        <div class="col-md-3 col-6">
+                        <div class="col-md-2 col-6">
                             <label class="form-label small fw-bold">Invoice No</label>
                             <input type="text" id="invoiceNo" class="form-control form-control-sm" placeholder="e.g. INV-1001">
                         </div>
-                        <div class="col-md-3 col-6">
+                        <div class="col-md-2 col-6">
                             <label class="form-label small fw-bold">Brand</label>
                             <select id="brand" class="form-select form-select-sm" onchange="onBrandChange()">
                                 <option value="Canteen">Canteen</option>
@@ -274,6 +319,10 @@
                             <label class="form-label small fw-bold">Branch Name</label>
                             <input type="text" id="branch" class="form-control form-control-sm" placeholder="Select Brand first..." onfocus="filterBranchOptions()" oninput="filterBranchOptions()">
                             <div id="branchSuggestions" class="autocomplete-suggestions" style="display:none;"></div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <label class="form-label small fw-bold">Location</label>
+                            <input type="text" id="location" class="form-control form-control-sm" placeholder="e.g. Mall, Station">
                         </div>
                     </div>
 
@@ -377,11 +426,15 @@
                                     <option value="Trolley">Trolley</option>
                                 </select>
                             </div>
-                            <div class="col-md-3 col-6">
+                            <div class="col-md-2 col-6">
                                 <label class="form-label small fw-bold">Branch Name</label>
                                 <input type="text" id="saleBranch" class="form-control form-control-sm" placeholder="e.g. Trolley - Egaila">
                             </div>
-                            <div class="col-md-3 col-6">
+                            <div class="col-md-2 col-6">
+                                <label class="form-label small fw-bold">Location</label>
+                                <input type="text" id="saleLocation" class="form-control form-control-sm" placeholder="e.g. Mall">
+                            </div>
+                            <div class="col-md-2 col-6">
                                 <label class="form-label small fw-bold">Barcode</label>
                                 <input type="text" id="saleBarcode" class="form-control form-control-sm" placeholder="Barcode">
                             </div>
@@ -425,6 +478,7 @@
                                     <th>Sent Invoice</th>
                                     <th>Brand</th>
                                     <th>Branch name</th>
+                                    <th>Location</th>
                                     <th>Barcode</th>
                                     <th>Item Name</th>
                                     <th>Qty</th>
@@ -499,22 +553,22 @@
 
         // MASTER SALES DATA ARRAY (IN EXACT FORMAT MATCHING IMAGE)
         let salesData = [
-            { sentDate: "2026-07-01", sentInvoice: "INV-9001", brand: "Trolley", branchName: "Trolley - The Avenues Mall (Phase 1)", barcode: "10001", itemName: "Fresh Milk 1L", qty: 620, unitPrice: 0.450, rsp: 0.500, total: 279.0 },
-            { sentDate: "2026-07-02", sentInvoice: "INV-9002", brand: "Canteen", branchName: "Canteen - Shuwaikh Industrial", barcode: "10002", itemName: "Laban Fresh 500ml", qty: 540, unitPrice: 0.250, rsp: 0.300, total: 135.0 },
-            { sentDate: "2026-07-03", sentInvoice: "INV-9003", brand: "Trolley", branchName: "Trolley - Airport T1 Departure", barcode: "10004", itemName: "Cheddar Cheese Block", qty: 410, unitPrice: 1.200, rsp: 1.350, total: 492.0 },
-            { sentDate: "2026-07-04", sentInvoice: "INV-9004", brand: "Canteen", branchName: "Canteen - Salmiya Central", barcode: "10003", itemName: "Greek Yogurt Plain", qty: 390, unitPrice: 0.350, rsp: 0.400, total: 136.5 },
-            { sentDate: "2026-07-05", sentInvoice: "INV-9005", brand: "Trolley", branchName: "Trolley - Jabriya Station", barcode: "10009", itemName: "Sandwich Club Classic", qty: 370, unitPrice: 0.950, rsp: 1.100, total: 351.5 },
-            { sentDate: "2026-07-06", sentInvoice: "INV-9006", brand: "Canteen", branchName: "Canteen - Hawally Hub", barcode: "10006", itemName: "Orange Juice 1L", qty: 330, unitPrice: 0.600, rsp: 0.700, total: 198.0 },
-            { sentDate: "2026-07-07", sentInvoice: "INV-9007", brand: "Trolley", branchName: "Trolley - Egaila Mall", barcode: "10005", itemName: "Butter Unsalted 200g", qty: 300, unitPrice: 0.850, rsp: 0.950, total: 255.0 },
-            { sentDate: "2026-07-08", sentInvoice: "INV-9008", brand: "Trolley", branchName: "Trolley - Sabah Al-Salem", barcode: "10008", itemName: "Croissant Butter", qty: 280, unitPrice: 0.300, rsp: 0.350, total: 84.0 },
-            { sentDate: "2026-07-09", sentInvoice: "INV-9009", brand: "Canteen", branchName: "Canteen - Farwaniya Complex", barcode: "10010", itemName: "Water 500ml", qty: 800, unitPrice: 0.100, rsp: 0.150, total: 80.0 },
-            { sentDate: "2026-07-10", sentInvoice: "INV-9010", brand: "Trolley", branchName: "Trolley - Khiran Resort", barcode: "10007", itemName: "Apple Juice 1L", qty: 250, unitPrice: 0.600, rsp: 0.700, total: 150.0 }
+            { sentDate: "2026-07-01", sentInvoice: "INV-9001", brand: "Trolley", branchName: "Trolley - The Avenues Mall (Phase 1)", location: "Mall", barcode: "10001", itemName: "Fresh Milk 1L", qty: 620, unitPrice: 0.450, rsp: 0.500, total: 279.000 },
+            { sentDate: "2026-07-02", sentInvoice: "INV-9002", brand: "Canteen", branchName: "Canteen - Shuwaikh Industrial", location: "Industrial", barcode: "10002", itemName: "Laban Fresh 500ml", qty: 540, unitPrice: 0.250, rsp: 0.300, total: 135.000 },
+            { sentDate: "2026-07-03", sentInvoice: "INV-9003", brand: "Trolley", branchName: "Trolley - Airport T1 Departure", location: "Airport", barcode: "10004", itemName: "Cheddar Cheese Block", qty: 410, unitPrice: 1.200, rsp: 1.400, total: 492.000 },
+            { sentDate: "2026-07-04", sentInvoice: "INV-9004", brand: "Canteen", branchName: "Canteen - Salmiya Central", location: "Central", barcode: "10003", itemName: "Greek Yogurt Plain", qty: 390, unitPrice: 0.350, rsp: 0.400, total: 136.500 },
+            { sentDate: "2026-07-05", sentInvoice: "INV-9005", brand: "Trolley", branchName: "Trolley - Jabriya Station", location: "Station", barcode: "10009", itemName: "Sandwich Club Classic", qty: 370, unitPrice: 0.950, rsp: 1.100, total: 351.500 },
+            { sentDate: "2026-07-06", sentInvoice: "INV-9006", brand: "Canteen", branchName: "Canteen - Hawally Hub", location: "Hub", barcode: "10006", itemName: "Orange Juice 1L", qty: 330, unitPrice: 0.600, rsp: 0.750, total: 198.000 },
+            { sentDate: "2026-07-07", sentInvoice: "INV-9007", brand: "Trolley", branchName: "Trolley - Egaila Mall", location: "Mall", barcode: "10005", itemName: "Butter Unsalted 200g", qty: 300, unitPrice: 0.850, rsp: 1.000, total: 255.000 },
+            { sentDate: "2026-07-08", sentInvoice: "INV-9008", brand: "Trolley", branchName: "Trolley - Sabah Al-Salem", location: "Residential", barcode: "10008", itemName: "Croissant Butter", qty: 280, unitPrice: 0.300, rsp: 0.350, total: 84.000 },
+            { sentDate: "2026-07-09", sentInvoice: "INV-9009", brand: "Canteen", branchName: "Canteen - Farwaniya Complex", location: "Complex", barcode: "10010", itemName: "Water 500ml", qty: 800, unitPrice: 0.100, rsp: 0.150, total: 80.000 },
+            { sentDate: "2026-07-10", sentInvoice: "INV-9010", brand: "Trolley", branchName: "Trolley - Khiran Resort", location: "Resort", barcode: "10007", itemName: "Apple Juice 1L", qty: 250, unitPrice: 0.600, rsp: 0.750, total: 150.000 }
         ];
 
         // DRIVER SUBMITTED RETURNS DATA STORE
         let returnData = [
-            { returnDate: "2026-07-12", invoiceNo: "INV-9001", brand: "Trolley", branchName: "Trolley - The Avenues Mall (Phase 1)", barcode: "10001", itemName: "Fresh Milk 1L", qty: 20, unitPrice: 0.450, total: 9.0, driver: "shahbaz" },
-            { returnDate: "2026-07-13", invoiceNo: "INV-9003", brand: "Trolley", branchName: "Trolley - Airport T1 Departure", barcode: "10004", itemName: "Cheddar Cheese Block", qty: 10, unitPrice: 1.200, total: 12.0, driver: "abdullah" }
+            { returnDate: "2026-07-12", invoiceNo: "INV-9001", brand: "Trolley", branchName: "Trolley - The Avenues Mall (Phase 1)", location: "Mall", barcode: "10001", itemName: "Fresh Milk 1L", qty: 20, unitPrice: 0.450, total: 9.000 },
+            { returnDate: "2026-07-13", invoiceNo: "INV-9003", brand: "Trolley", branchName: "Trolley - Airport T1 Departure", location: "Airport", barcode: "10004", itemName: "Cheddar Cheese Block", qty: 10, unitPrice: 1.200, total: 12.000 }
         ];
 
         let currentUser = null;
@@ -748,6 +802,7 @@
             const rDate = document.getElementById('returnDateHeader').value;
             const invNo = document.getElementById('invoiceNo').value || "RET-GEN";
             const brand = document.getElementById('brand').value;
+            const location = document.getElementById('location').value || "General";
 
             // Save each item to master return store
             currentReturnItems.forEach(item => {
@@ -756,6 +811,7 @@
                     invoiceNo: invNo,
                     brand: brand,
                     branchName: branch,
+                    location: location,
                     barcode: item.barcode,
                     itemName: item.name,
                     qty: item.qty,
@@ -783,6 +839,7 @@
             const sentInvoice = document.getElementById('saleSentInvoice').value;
             const brand = document.getElementById('saleBrand').value;
             const branchName = document.getElementById('saleBranch').value;
+            const location = document.getElementById('saleLocation').value;
             const barcode = document.getElementById('saleBarcode').value;
             const itemName = document.getElementById('saleItemName').value;
             const qty = parseInt(document.getElementById('saleQty').value || 0);
@@ -794,13 +851,14 @@
                 return alert("Please fill in Sent Invoice, Branch Name, and Item Name!");
             }
 
-            salesData.push({ sentDate, sentInvoice, brand, branchName, barcode, itemName, qty, unitPrice, rsp, total });
+            salesData.push({ sentDate, sentInvoice, brand, branchName, location, barcode, itemName, qty, unitPrice, rsp, total });
             renderSalesTable();
             alert("Single Sale Record Added Successfully!");
 
             // Clear inputs
             document.getElementById('saleSentInvoice').value = '';
             document.getElementById('saleBranch').value = '';
+            document.getElementById('saleLocation').value = '';
             document.getElementById('saleBarcode').value = '';
             document.getElementById('saleItemName').value = '';
             document.getElementById('saleQty').value = 1;
@@ -829,6 +887,7 @@
                             sentInvoice: row['Sent Invoice'] || row['sentInvoice'] || 'INV-EXCEL',
                             brand: row['Brand'] || row['brand'] || 'General',
                             branchName: row['Branch name'] || row['Branch Name'] || row['branchName'] || 'General Branch',
+                            location: row['Location'] || row['location'] || 'General',
                             barcode: row['Barcode'] || row['barcode'] || '0000',
                             itemName: row['Item Name'] || row['itemName'] || 'General Item',
                             qty: parseInt(row['Qty'] || row['qty'] || 0),
@@ -862,6 +921,7 @@
                     <td class="fw-bold">${row.sentInvoice}</td>
                     <td>${row.brand}</td>
                     <td>${row.branchName}</td>
+                    <td>${row.location || 'N/A'}</td>
                     <td>${row.barcode}</td>
                     <td>${row.itemName}</td>
                     <td>${row.qty}</td>
@@ -879,7 +939,9 @@
 
             const fromDate = document.getElementById('filterFromDate').value;
             const toDate = document.getElementById('filterToDate').value;
+            const brandFilter = document.getElementById('filterBrand').value;
             const branchFilter = document.getElementById('filterBranch').value.toLowerCase();
+            const locationFilter = document.getElementById('filterLocation').value.toLowerCase();
             const itemFilter = document.getElementById('filterItem').value.toLowerCase();
 
             // Filter Sales Data
@@ -887,7 +949,9 @@
                 let match = true;
                 if (fromDate && s.sentDate < fromDate) match = false;
                 if (toDate && s.sentDate > toDate) match = false;
+                if (brandFilter && s.brand !== brandFilter) match = false;
                 if (branchFilter && !s.branchName.toLowerCase().includes(branchFilter)) match = false;
+                if (locationFilter && !s.branchName.toLowerCase().includes(locationFilter)) match = false;
                 if (itemFilter && !s.itemName.toLowerCase().includes(itemFilter)) match = false;
                 return match;
             });
@@ -897,7 +961,9 @@
                 let match = true;
                 if (fromDate && r.returnDate < fromDate) match = false;
                 if (toDate && r.returnDate > toDate) match = false;
+                if (brandFilter && r.brand !== brandFilter) match = false;
                 if (branchFilter && !r.branchName.toLowerCase().includes(branchFilter)) match = false;
+                if (locationFilter && r.location && !r.location.toLowerCase().includes(locationFilter)) match = false;
                 if (itemFilter && !r.itemName.toLowerCase().includes(itemFilter)) match = false;
                 return match;
             });
@@ -953,6 +1019,46 @@
                 .sort((a, b) => b.sales - a.sales)
                 .slice(0, 15);
 
+            // BRAND-BASED BREAKDOWN (CANTEEN & TROLLEY)
+            const canteenSales = filteredSales.filter(s => s.brand === 'Canteen');
+            const trolleySales = filteredSales.filter(s => s.brand === 'Trolley');
+            const canteenReturns = filteredReturns.filter(r => r.brand === 'Canteen');
+            const trolleyReturns = filteredReturns.filter(r => r.brand === 'Trolley');
+
+            const canteenBranchMap = {};
+            canteenSales.forEach(s => {
+                if (!canteenBranchMap[s.branchName]) canteenBranchMap[s.branchName] = { sales: 0, returns: 0 };
+                canteenBranchMap[s.branchName].sales += s.total;
+            });
+            canteenReturns.forEach(r => {
+                if (!canteenBranchMap[r.branchName]) canteenBranchMap[r.branchName] = { sales: 0, returns: 0 };
+                canteenBranchMap[r.branchName].returns += r.total;
+            });
+
+            const trolleyBranchMap = {};
+            trolleySales.forEach(s => {
+                if (!trolleyBranchMap[s.branchName]) trolleyBranchMap[s.branchName] = { sales: 0, returns: 0 };
+                trolleyBranchMap[s.branchName].sales += s.total;
+            });
+            trolleyReturns.forEach(r => {
+                if (!trolleyBranchMap[r.branchName]) trolleyBranchMap[r.branchName] = { sales: 0, returns: 0 };
+                trolleyBranchMap[r.branchName].returns += r.total;
+            });
+
+            const canteenBranches = Object.keys(canteenBranchMap).map(b => ({
+                branch: b,
+                sales: canteenBranchMap[b].sales,
+                returns: canteenBranchMap[b].returns,
+                net: canteenBranchMap[b].sales - canteenBranchMap[b].returns
+            })).sort((a, b) => b.net - a.net);
+
+            const trolleyBranches = Object.keys(trolleyBranchMap).map(b => ({
+                branch: b,
+                sales: trolleyBranchMap[b].sales,
+                returns: trolleyBranchMap[b].returns,
+                net: trolleyBranchMap[b].sales - trolleyBranchMap[b].returns
+            })).sort((a, b) => b.net - a.net);
+
             // Render Branch Table
             document.getElementById('topBranchesTable').innerHTML = top15Branches.map((b, idx) => `
                 <tr>
@@ -971,6 +1077,26 @@
                     <td class="text-start fw-bold">${item.item}</td>
                     <td class="fw-bold">${item.qty}</td>
                     <td class="text-success fw-bold">${item.sales.toFixed(3)}</td>
+                </tr>
+            `).join('');
+
+            // Render Canteen Table
+            document.getElementById('canteenTable').innerHTML = canteenBranches.map(b => `
+                <tr>
+                    <td class="text-start fw-bold">${b.branch.replace('Canteen - ', '')}</td>
+                    <td class="text-primary">${b.sales.toFixed(3)}</td>
+                    <td class="text-danger">${b.returns.toFixed(3)}</td>
+                    <td class="text-success fw-bold">${b.net.toFixed(3)}</td>
+                </tr>
+            `).join('');
+
+            // Render Trolley Table
+            document.getElementById('trolleyTable').innerHTML = trolleyBranches.map(b => `
+                <tr>
+                    <td class="text-start fw-bold">${b.branch.replace('Trolley - ', '')}</td>
+                    <td class="text-primary">${b.sales.toFixed(3)}</td>
+                    <td class="text-danger">${b.returns.toFixed(3)}</td>
+                    <td class="text-success fw-bold">${b.net.toFixed(3)}</td>
                 </tr>
             `).join('');
 
@@ -1000,35 +1126,11 @@
             });
         }
 
-        // EXPORT FULL EXECUTIVE REPORT TO EXCEL
         function exportToExcel() {
-            const exportData = salesData.map(sale => {
-                const matchedReturns = returnData.filter(r => r.invoiceNo === sale.sentInvoice && r.itemName === sale.itemName);
-                const returnQty = matchedReturns.reduce((acc, r) => acc + r.qty, 0);
-                const returnVal = matchedReturns.reduce((acc, r) => acc + r.total, 0);
-
-                return {
-                    "Sent Date": sale.sentDate,
-                    "Sent Invoice": sale.sentInvoice,
-                    "Brand": sale.brand,
-                    "Branch name": sale.branchName,
-                    "Barcode": sale.barcode,
-                    "Item Name": sale.itemName,
-                    "Qty Sold": sale.qty,
-                    "Unit Price (KWD)": sale.unitPrice,
-                    "RSP (KWD)": sale.rsp,
-                    "Gross Total (KWD)": sale.total,
-                    "Returned Qty": returnQty,
-                    "Return Total (KWD)": returnVal,
-                    "Net Revenue (KWD)": sale.total - returnVal
-                };
-            });
-
-            const worksheet = XLSX.utils.json_to_sheet(exportData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Sales_Return_Report");
-
-            XLSX.writeFile(workbook, `Sales_Return_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+            const ws = XLSX.utils.json_to_sheet(salesData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Sales Data");
+            XLSX.writeFile(wb, "SalesReport.xlsx");
         }
     </script>
 </body>
