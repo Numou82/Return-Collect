@@ -10,6 +10,8 @@
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <!-- Chart.js for Dashboard Visuals -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS for Excel (.xlsx, .xls) Reading -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         body {
@@ -284,12 +286,12 @@
 
                 <!-- TAB 3: DAILY SALES DATA UPLOAD (ADMIN ONLY) -->
                 <div class="tab-pane fade" id="salesTab">
-                    <h5 class="fw-bold text-dark mb-3">Daily Sales CSV Data Management</h5>
-                    <p class="small text-muted">Upload your daily sales records matching the structure: <code>Sent Date, Sent Invoice, Brand, Branch name, Barcode, Item Name, Qty, Unit Price, RSP, Total</code></p>
+                    <h5 class="fw-bold text-dark mb-3">Daily Sales Excel Data Management</h5>
+                    <p class="small text-muted">Upload your daily sales Excel file (<code>.xlsx</code> or <code>.xls</code>) or CSV format.</p>
                     
                     <div class="card p-4 border-dashed bg-light text-center mb-3">
-                        <input type="file" id="salesCsvInput" accept=".csv" class="form-control mb-3">
-                        <button class="btn btn-primary" onclick="uploadSalesCSV()">Upload Sales CSV Data</button>
+                        <input type="file" id="salesExcelInput" accept=".xlsx, .xls, .csv" class="form-control mb-3">
+                        <button class="btn btn-primary" onclick="uploadSalesExcel()">Upload Sales Data File</button>
                     </div>
 
                     <div id="adminExportSection" class="pt-3 border-top">
@@ -306,7 +308,7 @@
     </div>
 
     <!-- Bootstrap 5 JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"></script>
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
@@ -749,51 +751,85 @@
             });
         }
 
-        // --- DAILY SALES CSV PARSER & UPLOAD ---
-        function uploadSalesCSV() {
-            const fileInput = document.getElementById('salesCsvInput');
+        // --- EXCEL & CSV SALES DATA PARSER ---
+        function uploadSalesExcel() {
+            const fileInput = document.getElementById('salesExcelInput');
             const file = fileInput.files[0];
             if (!file) {
-                alert("Please select a valid CSV file first.");
+                alert("Please select an Excel or CSV file first.");
                 return;
             }
 
             const reader = new FileReader();
-            reader.onload = function(e) {
-                const text = e.target.result;
-                const rows = text.split('\n').map(row => row.trim()).filter(row => row.length > 0);
-                
-                if (rows.length < 2) {
-                    alert("CSV file seems empty or invalid.");
-                    return;
-                }
 
-                let parsedSales = [];
-                for (let i = 1; i < rows.length; i++) {
-                    const cols = rows[i].split(',').map(c => c.replace(/^"|"$/g, '').trim());
-                    if (cols.length >= 8) {
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // Read the first worksheet
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // Convert sheet to JSON array
+                    const rawJson = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    if (rawJson.length < 2) {
+                        alert("Excel file is empty or missing data rows.");
+                        return;
+                    }
+
+                    let parsedSales = [];
+
+                    // Loop starting from row index 1 (skipping header)
+                    for (let i = 1; i < rawJson.length; i++) {
+                        const row = rawJson[i];
+                        if (!row || row.length === 0) continue;
+
+                        let rawSentDate = row[0];
+                        let formattedSentDate = "";
+
+                        // Handle Excel date numbers or text strings
+                        if (typeof rawSentDate === 'number') {
+                            const dateObj = XLSX.SSF.parse_date_code(rawSentDate);
+                            if (dateObj) {
+                                formattedSentDate = `${dateObj.y}-${String(dateObj.m).padStart(2, '0')}-${String(dateObj.d).padStart(2, '0')}`;
+                            }
+                        } else {
+                            formattedSentDate = formatDateForExcel(rawSentDate);
+                        }
+
+                        let qty = parseInt(row[6]) || 0;
+                        let unitPrice = parseFloat(row[7]) || 0;
+                        let total = parseFloat(row[9]) || (qty * unitPrice);
+
                         parsedSales.push({
-                            sentDate: formatDateForExcel(cols[0]),
-                            sentInvoice: cols[1],
-                            brand: cols[2],
-                            branchName: cols[3],
-                            barcode: cols[4],
-                            itemName: cols[5],
-                            qty: parseInt(cols[6]) || 0,
-                            unitPrice: parseFloat(cols[7]) || 0,
-                            rsp: parseFloat(cols[8]) || 0,
-                            total: parseFloat(cols[9]) || (parseInt(cols[6]) * parseFloat(cols[7]))
+                            sentDate: formattedSentDate,
+                            sentInvoice: row[1] ? String(row[1]) : "",
+                            brand: row[2] ? String(row[2]) : "",
+                            branchName: row[3] ? String(row[3]) : "",
+                            barcode: row[4] ? String(row[4]) : "",
+                            itemName: row[5] ? String(row[5]) : "",
+                            qty: qty,
+                            unitPrice: unitPrice,
+                            rsp: parseFloat(row[8]) || 0,
+                            total: total
                         });
                     }
-                }
 
-                salesDatabase = salesDatabase.concat(parsedSales);
-                localStorage.setItem('dailySalesData', JSON.stringify(salesDatabase));
-                alert(`Successfully imported ${parsedSales.length} daily sales records!`);
-                fileInput.value = "";
-                renderDashboard();
+                    salesDatabase = salesDatabase.concat(parsedSales);
+                    localStorage.setItem('dailySalesData', JSON.stringify(salesDatabase));
+                    alert(`Successfully imported ${parsedSales.length} daily sales records from Excel!`);
+                    fileInput.value = "";
+                    renderDashboard();
+
+                } catch (err) {
+                    console.error("Excel processing error:", err);
+                    alert("Error parsing Excel file. Please ensure it's a valid Excel format.");
+                }
             };
-            reader.readAsText(file);
+
+            reader.readAsArrayBuffer(file);
         }
 
         // --- DASHBOARD & KPI ANALYTICS RENDER ENGINE ---
@@ -880,7 +916,6 @@
             }
 
             filteredSales.forEach(s => {
-                // Production date in return matches Sent Date in Sales automatically
                 let matchingReturns = returns.filter(r => 
                     r.branch === s.branchName && 
                     r.itemName === s.itemName && 
