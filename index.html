@@ -8,11 +8,11 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome Icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- HTML5-QRCode Library -->
+    <!-- HTML5-QRCode Library for Camera Barcode Scanning -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <!-- Chart.js -->
+    <!-- Chart.js for Admin Analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- SheetJS for Excel File Reading -->
+    <!-- SheetJS for Excel Reading -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
@@ -116,7 +116,7 @@
             background: #fff;
             border: 1px solid #ced4da;
             border-radius: 0 0 6px 6px;
-            max-height: 180px;
+            max-height: 200px;
             overflow-y: auto;
             z-index: 1050;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -157,6 +157,14 @@
             border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
+        #reader {
+            width: 100%;
+            max-width: 380px;
+            margin: 0 auto;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
         @media (max-width: 768px) {
             .sidebar { width: 200px; }
             .main-content { margin-left: 200px; }
@@ -168,7 +176,7 @@
     <!-- LOGIN SCREEN -->
     <div id="loginSection" class="login-container">
         <div class="login-card">
-            <h3 class="text-center fw-bold mb-4"><i class="fas fa-truck"></i> Driver & Admin Login</h3>
+            <h3 class="text-center fw-bold mb-4"><i class="fas fa-truck"></i> Return Portal Login</h3>
             <div class="mb-3">
                 <label for="loginId" class="form-label fw-bold">User ID</label>
                 <input type="text" id="loginId" class="form-control" placeholder="e.g. shahbaz, admin">
@@ -186,17 +194,18 @@
     <!-- SIDEBAR NAVIGATION -->
     <div id="sidebarSection" class="sidebar d-none">
         <div class="sidebar-header">
-            <h4><i class="fas fa-box-open"></i> Return Portal</h4>
+            <h4><i class="fas fa-box-open"></i> Return System</h4>
             <small id="userDisplayName">Welcome</small>
         </div>
 
         <ul class="sidebar-menu">
+            <!-- DRIVER & ADMIN ACCESSIBLE TAB -->
             <li>
                 <a href="#" id="menuEntry" class="nav-link-sidebar active" onclick="switchTab('entryTab', this)">
                     <i class="fas fa-file-invoice"></i> Return Entry
                 </a>
             </li>
-            <!-- ADMIN ONLY MENUS -->
+            <!-- STRICTLY ADMIN ONLY MENUS -->
             <li class="admin-only d-none">
                 <a href="#" id="menuSales" class="nav-link-sidebar" onclick="switchTab('salesTab', this)">
                     <i class="fas fa-upload"></i> Sales Upload
@@ -242,7 +251,7 @@
                         </div>
                         <div class="col-md-3 col-6">
                             <label class="form-label small fw-bold">Invoice No</label>
-                            <input type="text" id="invoiceNo" class="form-control form-control-sm" placeholder="INV-1001">
+                            <input type="text" id="invoiceNo" class="form-control form-control-sm" placeholder="e.g. INV-1001">
                         </div>
                         <div class="col-md-3 col-6">
                             <label class="form-label small fw-bold">Brand</label>
@@ -260,17 +269,18 @@
 
                     <hr>
 
-                    <!-- SCANNER SECTION -->
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold"><i class="fas fa-barcode"></i> Camera Barcode Scanner</label>
-                        <div id="reader" style="max-width: 350px; margin: 0 auto;"></div>
+                    <!-- MOBILE CAMERA SCANNER SECTION -->
+                    <div class="bg-light p-3 rounded mb-3 border text-center">
+                        <label class="form-label fw-bold text-primary mb-2"><i class="fas fa-camera"></i> Mobile Camera Barcode Scanner</label>
+                        <div id="reader"></div>
+                        <small class="text-muted d-block mt-1">Point your camera at a product barcode to scan automatically with a beep sound.</small>
                     </div>
 
                     <!-- ITEM ADD FORM -->
                     <div class="bg-light p-3 rounded mb-3 border">
                         <div class="mb-2 autocomplete-wrapper">
                             <label class="form-label small fw-bold">Search Item Name / Barcode</label>
-                            <input type="text" id="itemName" class="form-control form-control-sm" placeholder="Click/type to search item..." onfocus="filterItemOptions()" oninput="filterItemOptions()">
+                            <input type="text" id="itemName" class="form-control form-control-sm" placeholder="Type or click to search item..." onfocus="filterItemOptions()" oninput="filterItemOptions()">
                             <div id="itemSuggestions" class="autocomplete-suggestions" style="display:none;"></div>
                         </div>
 
@@ -302,7 +312,7 @@
                         </div>
 
                         <button class="btn btn-secondary btn-sm w-100 fw-bold" onclick="addReturnItem()">
-                            <i class="fas fa-plus"></i> Add Item
+                            <i class="fas fa-plus"></i> Add Item to Return List
                         </button>
                     </div>
 
@@ -321,7 +331,7 @@
                     </button>
                 </div>
 
-                <!-- TAB 2: SALES EXCEL UPLOAD (ADMIN ONLY) -->
+                <!-- TAB 2: SALES UPLOAD (ADMIN ONLY) -->
                 <div class="tab-pane fade" id="salesTab">
                     <h5 class="mb-3 text-secondary fw-bold"><i class="fas fa-upload"></i> Import Sales Data (Excel/CSV)</h5>
                     <div class="p-4 border border-dashed text-center bg-light rounded">
@@ -379,7 +389,7 @@
 
     <!-- SCRIPT LOGIC -->
     <script>
-        // Driver and Admin credentials database
+        // Driver and Admin Database
         const userDatabase = {
             "shahbaz": { name: "Shahbaz", pass: "1234", role: "driver" },
             "abdullah": { name: "Abdullah", pass: "1234", role: "driver" },
@@ -387,14 +397,36 @@
             "admin": { name: "Amir Khan", pass: "admin123", role: "admin" }
         };
 
-        // Master branch directory
+        // EXPANDED MASTER BRANCH LIST (25 KUWAIT LOCATIONS)
         const masterBranches = [
-            "Shuwaikh Main Branch", "Salmiya Branch", "Hawally Branch", 
-            "Fahaheel Branch", "Jahra Branch", "Farwaniya Branch", 
-            "Ahmadi Branch", "Mahboula Branch", "Jabriya Branch", "Sabah Al-Salem Branch"
+            "Shuwaikh Main Branch",
+            "Salmiya Branch",
+            "Hawally Branch",
+            "Fahaheel Branch",
+            "Jahra Main Branch",
+            "Farwaniya Branch",
+            "Ahmadi Branch",
+            "Mahboula Branch",
+            "Jabriya Branch",
+            "Sabah Al-Salem Branch",
+            "Kuwait City - Sharq Branch",
+            "Kuwait City - Qibla Branch",
+            "The Avenues Mall Branch",
+            "Kuwait International Airport Branch",
+            "Egaila Branch",
+            "Khiran Branch",
+            "Mangaf Branch",
+            "Salwa Branch",
+            "Fintas Branch",
+            "Sulaibiya Branch",
+            "Ardiya Industrial Branch",
+            "Mishref Branch",
+            "Rai Branch",
+            "Bneid Al-Gar Branch",
+            "Sulaibikhat Branch"
         ];
 
-        // Master item catalog
+        // Master Product Catalog
         const masterItems = [
             { name: "Fresh Milk 1L", barcode: "10001", price: 0.450 },
             { name: "Laban Fresh 500ml", barcode: "10002", price: 0.250 },
@@ -408,18 +440,20 @@
             { name: "Water 500ml", barcode: "10010", price: 0.100 }
         ];
 
-        // Default initial sales data for KPI visualization
+        // Sample Sales Data across various locations
         let salesData = [
-            { branch: "Shuwaikh Main Branch", item: "Fresh Milk 1L", qty: 520, sales: 234.0 },
-            { branch: "Salmiya Branch", item: "Laban Fresh 500ml", qty: 410, sales: 102.5 },
-            { branch: "Hawally Branch", item: "Cheddar Cheese Block", qty: 310, sales: 372.0 },
-            { branch: "Fahaheel Branch", item: "Greek Yogurt Plain", qty: 290, sales: 101.5 },
-            { branch: "Jahra Branch", item: "Sandwich Club Classic", qty: 270, sales: 256.5 },
-            { branch: "Farwaniya Branch", item: "Orange Juice 1L", qty: 230, sales: 138.0 },
-            { branch: "Ahmadi Branch", item: "Butter Unsalted 200g", qty: 200, sales: 170.0 },
-            { branch: "Mahboula Branch", item: "Croissant Butter", qty: 180, sales: 54.0 },
-            { branch: "Jabriya Branch", item: "Water 500ml", qty: 600, sales: 60.0 },
-            { branch: "Sabah Al-Salem Branch", item: "Apple Juice 1L", qty: 150, sales: 90.0 }
+            { branch: "Shuwaikh Main Branch", item: "Fresh Milk 1L", qty: 620, sales: 279.0 },
+            { branch: "The Avenues Mall Branch", item: "Laban Fresh 500ml", qty: 540, sales: 135.0 },
+            { branch: "Salmiya Branch", item: "Cheddar Cheese Block", qty: 410, sales: 492.0 },
+            { branch: "Hawally Branch", item: "Greek Yogurt Plain", qty: 390, sales: 136.5 },
+            { branch: "Fahaheel Branch", item: "Sandwich Club Classic", qty: 370, sales: 351.5 },
+            { branch: "Farwaniya Branch", item: "Orange Juice 1L", qty: 330, sales: 198.0 },
+            { branch: "Kuwait City - Sharq Branch", item: "Butter Unsalted 200g", qty: 300, sales: 255.0 },
+            { branch: "Egaila Branch", item: "Croissant Butter", qty: 280, sales: 84.0 },
+            { branch: "Sabah Al-Salem Branch", item: "Water 500ml", qty: 800, sales: 80.0 },
+            { branch: "Jahra Main Branch", item: "Apple Juice 1L", qty: 250, sales: 150.0 },
+            { branch: "Jabriya Branch", item: "Fresh Milk 1L", qty: 210, sales: 94.5 },
+            { branch: "Mangaf Branch", item: "Laban Fresh 500ml", qty: 190, sales: 47.5 }
         ];
 
         let currentUser = null;
@@ -427,6 +461,27 @@
         let html5QrcodeScanner = null;
         let branchChartInstance = null;
         let itemChartInstance = null;
+
+        // AUDIO BEEP SOUND FUNCTION
+        function playScanBeep() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.type = 'sine';
+                oscillator.frequency.value = 1200; // Beep pitch
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.15); // Beep length: 150ms
+            } catch (e) {
+                console.log("Audio play error: ", e);
+            }
+        }
 
         window.addEventListener('DOMContentLoaded', () => {
             document.getElementById('returnDateHeader').value = new Date().toISOString().split('T')[0];
@@ -440,7 +495,7 @@
             });
         });
 
-        // AUTHENTICATION LOGIC
+        // AUTHENTICATION & ROLE ACCESS CONTROL
         function handleLogin() {
             const idInput = document.getElementById('loginId').value.trim().toLowerCase();
             const passInput = document.getElementById('loginPassword').value.trim();
@@ -463,12 +518,12 @@
             document.getElementById('sidebarSection').classList.remove('d-none');
             document.getElementById('appContainer').classList.remove('d-none');
 
-            // Access Control Enforcement
+            // Strictly enforce Admin view vs Driver view
             const adminMenus = document.querySelectorAll('.admin-only');
             if (user.role === 'admin') {
                 adminMenus.forEach(menu => menu.classList.remove('d-none'));
             } else {
-                // Hide Admin links for Driver accounts
+                // Completely hide Admin tabs for Drivers
                 adminMenus.forEach(menu => menu.classList.add('d-none'));
             }
 
@@ -496,7 +551,7 @@
             document.getElementById(tabId).classList.add('show', 'active');
         }
 
-        // BRANCH AUTO-COMPLETE / DROPDOWN
+        // BRANCH AUTOCOMPLETE / SEARCH DROPDOWN
         function filterBranchOptions() {
             const input = document.getElementById('branch').value.toLowerCase();
             const box = document.getElementById('branchSuggestions');
@@ -520,7 +575,7 @@
             }
         }
 
-        // ITEM AUTO-COMPLETE / DROPDOWN
+        // ITEM AUTOCOMPLETE
         function filterItemOptions() {
             const input = document.getElementById('itemName').value.toLowerCase();
             const box = document.getElementById('itemSuggestions');
@@ -550,6 +605,24 @@
             document.getElementById('unitPrice').value = item.price.toFixed(3);
         }
 
+        // CAMERA SCANNER WITH SOUND BEEP
+        function initScanner() {
+            if (document.getElementById("reader")) {
+                html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 150 } });
+                html5QrcodeScanner.render((decodedText) => {
+                    // Play audio beep sound on successful scan
+                    playScanBeep();
+
+                    const foundItem = masterItems.find(i => i.barcode === decodedText);
+                    if (foundItem) {
+                        selectItem(foundItem);
+                    } else {
+                        document.getElementById('manualBarcode').value = decodedText;
+                    }
+                }, () => {});
+            }
+        }
+
         // ADD ITEM TO RETURN LIST
         function addReturnItem() {
             const name = document.getElementById('itemName').value;
@@ -557,7 +630,7 @@
             const qty = parseInt(document.getElementById('qty').value || 1);
             const reason = document.getElementById('returnReason').value;
 
-            if (!name) return alert("Please select an item!");
+            if (!name) return alert("Please select an item first!");
 
             const total = price * qty;
             currentReturnItems.push({ name, price, qty, reason, total });
@@ -606,25 +679,10 @@
             renderItemList();
         }
 
-        // CAMERA SCANNER IMPLEMENTATION
-        function initScanner() {
-            if (document.getElementById("reader")) {
-                html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 150 } });
-                html5QrcodeScanner.render((decodedText) => {
-                    const foundItem = masterItems.find(i => i.barcode === decodedText);
-                    if (foundItem) {
-                        selectItem(foundItem);
-                    } else {
-                        document.getElementById('manualBarcode').value = decodedText;
-                    }
-                }, () => {});
-            }
-        }
-
         // UPLOAD SALES DATA FILE
         function uploadSalesExcel() {
             const fileInput = document.getElementById('salesExcelInput');
-            if (!fileInput.files.length) return alert("Please choose an Excel file first!");
+            if (!fileInput.files.length) return alert("Please select an Excel file first!");
 
             const file = fileInput.files[0];
             const reader = new FileReader();
@@ -643,10 +701,10 @@
                             qty: parseInt(row.Qty || row.qty || 0),
                             sales: parseFloat(row.Sales || row.sales || 0)
                         }));
-                        alert("Sales file processed successfully!");
+                        alert("Sales file uploaded and synced successfully!");
                         renderDashboard();
                     } else {
-                        alert("The selected file contains no data.");
+                        alert("The uploaded file has no data.");
                     }
                 } catch (err) {
                     alert("Error parsing file. Please upload a valid Excel or CSV file.");
@@ -655,7 +713,7 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // RENDER ADMIN TOP 10 DASHBOARD & KPIS
+        // RENDER ADMIN DASHBOARD (TOP 10 KPIS)
         function renderDashboard() {
             if (currentUser.role !== 'admin') return;
 
