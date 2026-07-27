@@ -1,220 +1,186 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Offline Return Collector</title>
+    <title>Return Delivery Note App</title>
+    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <!-- HTML5-QRCode Library -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        body { 
-            padding: 20px 10px; 
-            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
-            min-height: 100vh;
-            color: #333;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        body {
+            background-color: #f8f9fa;
         }
-
-        /* Fullscreen Professional Login Wrapper */
-        .login-screen-wrapper {
-            position: fixed;
-            top: 0;
-            left: 0;
+        .app-card {
+            max-width: 600px;
+            margin: 20px auto;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        #reader {
             width: 100%;
-            height: 100%;
-            background-color: #111827;
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(31, 41, 55, 0.5) 0, transparent 50%), 
-                radial-gradient(at 50% 0%, rgba(17, 24, 39, 1) 0, transparent 50%), 
-                radial-gradient(at 100% 0%, rgba(14, 116, 144, 0.15) 0, transparent 50%),
-                radial-gradient(at 0% 100%, rgba(15, 23, 42, 1) 0, transparent 50%), 
-                radial-gradient(at 100% 100%, rgba(15, 118, 110, 0.1) 0, transparent 50%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            padding: 15px;
+            border-radius: 8px;
+            overflow: hidden;
         }
-
-        /* Premium frosted glass container card */
-        .login-card {
-            width: 100%;
-            max-width: 400px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 16px;
-            padding: 30px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
-        }
-
-        .login-card h3 {
-            color: #111827;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-        }
-
-        /* Mobile-Friendly Custom Dropdown Options */
         .autocomplete-wrapper {
             position: relative;
         }
-
         .autocomplete-suggestions {
             position: absolute;
             top: 100%;
             left: 0;
             right: 0;
+            background: #fff;
+            border: 1px solid #ced4da;
+            border-radius: 0 0 6px 6px;
             max-height: 200px;
             overflow-y: auto;
-            background-color: #fff;
-            border: 1px solid #ced4da;
-            border-top: none;
-            border-radius: 0 0 0.375rem 0.375rem;
-            z-index: 9999;
-            display: none;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 1050;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
-
         .autocomplete-suggestion {
-            padding: 10px 12px;
+            padding: 8px 12px;
             cursor: pointer;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 0.95rem;
+            border-bottom: 1px solid #f1f1f1;
         }
-
-        .autocomplete-suggestion:active, 
         .autocomplete-suggestion:hover {
-            background-color: #0e7490;
-            color: #ffffff;
+            background-color: #e9ecef;
         }
     </style>
 </head>
 <body>
 
-    <!-- LOGIN SECTION -->
-    <div id="loginSection" class="login-screen-wrapper">
-        <div class="card shadow login-card">
-            <h3 class="text-center mb-1">Return Collector</h3>
-            <p class="text-center text-muted small mb-4">Please log in to manage return invoices</p>
-            
+    <!-- LOGIN CONTAINER -->
+    <div id="loginSection" class="container mt-5">
+        <div class="card app-card p-4">
+            <h3 class="text-center mb-4 text-primary">Login</h3>
             <div class="mb-3">
-                <label class="form-label text-secondary small"><b>User ID (Name):</b></label>
-                <input type="text" id="loginId" class="form-control form-control-lg" placeholder="e.g. shahbaz" autocapitalize="none" autocorrect="off" style="font-size: 0.95rem;">
+                <label for="loginId" class="form-label">User ID / Username</label>
+                <input type="text" id="loginId" class="form-control" placeholder="e.g. shahbaz, admin">
             </div>
-            <div class="mb-4">
-                <label class="form-label text-secondary small"><b>Password:</b></label>
-                <input type="password" id="loginPassword" class="form-control form-control-lg" placeholder="••••••••" style="font-size: 0.95rem;">
+            <div class="mb-3">
+                <label for="loginPassword" class="form-label">Password</label>
+                <input type="password" id="loginPassword" class="form-control" placeholder="Enter password">
             </div>
-            <button class="btn btn-primary btn-lg w-100 shadow-sm" onclick="handleLogin()" style="background: #0e7490; border: none; font-size: 1rem; font-weight: 600;">Sign In</button>
+            <button class="btn btn-primary w-100" onclick="handleLogin()">Login</button>
         </div>
     </div>
 
     <!-- MAIN APP CONTAINER -->
     <div id="appContainer" class="container d-none">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <span class="text-light fs-5">Driver: <b id="displayDriverName" class="text-warning"></b></span>
-            <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
-        </div>
-
-        <h2 class="text-center my-3 text-light">Return Invoice Collector</h2>
-         
-        <div class="card p-3 mb-3">
-            <div class="mb-3">
-                <label class="form-label"><b>1. Manual Return Invoice No:</b></label>
-                <input type="text" id="invoiceNo" class="form-control" placeholder="Enter Invoice Number">
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label"><b>2. Select Brand:</b></label>
-                <select id="brand" class="form-select" onchange="onBrandChange()">
-                    <option value="">-- Choose Brand --</option>
-                    <option value="Canteen">Canteen</option>
-                    <option value="Trolley">Trolley</option>
-                </select>
-            </div>
-
-            <div class="mb-3 autocomplete-wrapper">
-                <label class="form-label"><b>3. Search/Select Branch:</b></label>
-                <input type="text" id="branch" class="form-control" placeholder="Type characters to search branch..." oninput="filterBranchOptions()" onfocus="filterBranchOptions()" autocomplete="off">
-                <div id="branchSuggestions" class="autocomplete-suggestions"></div>
-            </div>
-        </div>
-
-        <div class="card p-3 mb-3 text-center">
-            <h5><b>4. Fast Scan Barcode</b></h5>
-            <div id="reader"></div>
-            <input type="text" id="manualBarcode" class="form-control mt-2" placeholder="Or enter barcode manually">
-            <button class="btn btn-secondary btn-sm mt-2" onclick="lookupBarcode(document.getElementById('manualBarcode').value)">Lookup Manual Barcode</button>
-        </div>
-
-        <div class="card p-3 mb-3">
-            <h5><b>Item Details</b></h5>
-            <div class="mb-2 autocomplete-wrapper">
-                <label>Item Name:</label>
-                <input type="text" id="itemName" class="form-control" placeholder="Type characters to search item..." oninput="filterItemOptions()" onfocus="filterItemOptions()" autocomplete="off">
-                <div id="itemSuggestions" class="autocomplete-suggestions"></div>
-            </div>
-
-            <!-- UNIT PRICE AND QTY -->
-            <div class="row">
-                <div class="col-6 mb-2">
-                    <label>Unit Price:</label>
-                    <input type="number" id="unitPrice" step="0.001" class="form-control" readonly>
-                </div>
-                <div class="col-6 mb-2">
-                    <label>Qty:</label>
-                    <input type="number" id="qty" class="form-control" value="1" min="1">
-                </div>
-            </div>
-
-            <!-- RETURN REASON -->
-            <div class="mb-2">
-                <label><b>Return Reason:</b></label>
-                <select id="returnReason" class="form-select">
-                    <option value="Expired">Expired</option>
-                    <option value="Damaged">Damaged</option>
-                    <option value="Wrong Item">Wrong Item</option>
-                    <option value="Customer Cancelled">Customer Cancelled</option>
-                    <option value="Overstock / Excess">Overstock / Excess</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
-
-            <!-- RETURN DATE & PRODUCTION DATE ROW -->
-            <div class="row mb-3">
-                <div class="col-6">
-                    <label><b>Return Date:</b></label>
-                    <input type="date" id="returnDateHeader" class="form-control">
-                </div>
-                <div class="col-6">
-                    <label>Production Date (Sent):</label>
-                    <input type="date" id="prodDate" class="form-control">
-                </div>
-            </div>
-
-            <button class="btn btn-success w-100" onclick="addReturnItem()">Add Item to This Invoice</button>
-        </div>
-
-        <div class="card p-3 mb-3">
-            <h5>Current Invoice Items</h5>
-            <ul id="itemList" class="list-group mb-3"></ul>
+        <div class="card app-card p-4">
             
-            <div class="p-3 mb-3 bg-light border rounded d-flex justify-content-between align-items-center">
-                <span class="fs-5 text-dark"><b>Current Invoice Total:</b></span>
-                <span class="fs-4 text-success"><b>KWD <span id="invoiceTotalDisplay">0.000</span></b></span>
+            <!-- HEADER LOGOUT -->
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <div>
+                    <small class="text-muted">Logged in as:</small><br>
+                    <strong id="displayDriverName" class="text-primary">---</strong>
+                </div>
+                <button class="btn btn-outline-danger btn-sm" onclick="logout()">Logout</button>
             </div>
 
-            <button class="btn btn-primary w-100" id="saveInvoiceBtn" onclick="saveFullInvoice()">Finalize & Save Invoice</button>
-        </div>
+            <h4 class="text-center mb-3">Return Delivery Note</h4>
 
-        <!-- ADMIN ACTIONS -->
-        <div id="adminActions" class="card p-3 border-danger d-none">
-            <h5 class="text-danger">Admin Actions (Export Data)</h5>
-            <button class="btn btn-dark w-100 mb-2" id="exportBtn" onclick="exportToExcel()">Export All Data to Excel (CSV)</button>
+            <!-- ADMIN SECTION -->
+            <div id="adminActions" class="mb-3 d-none">
+                <button id="exportBtn" class="btn btn-success w-100 mb-2" onclick="exportToExcel()">
+                    Export All Data to Excel (CSV)
+                </button>
+            </div>
+
+            <!-- INVOICE HEADER DETAILS -->
+            <div class="row g-2 mb-3">
+                <div class="col-6">
+                    <label class="form-label small fw-bold">Return Date</label>
+                    <input type="date" id="returnDateHeader" class="form-control form-control-sm">
+                </div>
+                <div class="col-6">
+                    <label class="form-label small fw-bold">Invoice No</label>
+                    <input type="text" id="invoiceNo" class="form-control form-control-sm" placeholder="e.g. INV-1001">
+                </div>
+                <div class="col-6">
+                    <label class="form-label small fw-bold">Brand</label>
+                    <select id="brand" class="form-select form-select-sm" onchange="onBrandChange()">
+                        <option value="">-- Select --</option>
+                        <option value="Canteen">Canteen</option>
+                        <option value="Trolley">Trolley</option>
+                    </select>
+                </div>
+                <div class="col-6 autocomplete-wrapper">
+                    <label class="form-label small fw-bold">Branch</label>
+                    <input type="text" id="branch" class="form-control form-control-sm" placeholder="Search branch..." oninput="filterBranchOptions()">
+                    <div id="branchSuggestions" class="autocomplete-suggestions" style="display:none;"></div>
+                </div>
+            </div>
+
+            <hr>
+
+            <!-- CAMERA SCANNER SECTION -->
+            <div class="mb-3">
+                <label class="form-label small fw-bold">Scan Barcode</label>
+                <div id="reader"></div>
+            </div>
+
+            <!-- ITEM INPUT FORM -->
+            <div class="bg-light p-3 rounded mb-3 border">
+                <div class="mb-2 autocomplete-wrapper">
+                    <label class="form-label small">Item Name / Search</label>
+                    <input type="text" id="itemName" class="form-control form-control-sm" placeholder="Type or scan item..." oninput="filterItemOptions()">
+                    <div id="itemSuggestions" class="autocomplete-suggestions" style="display:none;"></div>
+                </div>
+
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <label class="form-label small">Barcode</label>
+                        <input type="text" id="manualBarcode" class="form-control form-control-sm" placeholder="Scanned Barcode" readonly>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small">Unit Price (KWD)</label>
+                        <input type="number" id="unitPrice" class="form-control form-control-sm" step="0.001" readonly>
+                    </div>
+                </div>
+
+                <div class="row g-2 mb-2">
+                    <div class="col-4">
+                        <label class="form-label small">Qty</label>
+                        <input type="number" id="qty" class="form-control form-control-sm" value="1" min="1">
+                    </div>
+                    <div class="col-8">
+                        <label class="form-label small">Return Reason</label>
+                        <select id="returnReason" class="form-select form-select-sm">
+                            <option value="Expired">Expired</option>
+                            <option value="Damaged">Damaged</option>
+                            <option value="Quality Issue">Quality Issue</option>
+                            <option value="Overstock">Overstock</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small">Production Date</label>
+                    <input type="date" id="prodDate" class="form-control form-control-sm">
+                </div>
+
+                <button class="btn btn-secondary btn-sm w-100" onclick="addReturnItem()">Add Item to Invoice</button>
+            </div>
+
+            <!-- INVOICE ITEMS LIST -->
+            <div class="mb-3">
+                <h6 class="fw-bold">Current Invoice Items</h6>
+                <ul id="itemList" class="list-group mb-2"></ul>
+                <div class="d-flex justify-content-between align-items-center fw-bold fs-5 px-2">
+                    <span>Total Amount:</span>
+                    <span>KWD <span id="invoiceTotalDisplay">0.000</span></span>
+                </div>
+            </div>
+
+            <button id="saveInvoiceBtn" class="btn btn-success w-100 py-2 fw-bold" onclick="saveFullInvoice()">Finalize & Save Invoice</button>
+
         </div>
     </div>
 
+    <!-- JAVASCRIPT LOGIC -->
     <script>
         // --- GOOGLE SHEETS CENTRAL CLOUD API URL ---
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXTqzRbiBnhNlpNqFokTKeChSvfmOf3Z33tFGVVVBGxfsVhS0wXFyP2FEM0Ba0KoQ/exec";
@@ -607,7 +573,7 @@
             updateItemsUI();
         }
 
-        // --- CENTRAL CLOUD UPLOAD VIA GOOGLE APPS SCRIPT ---
+        // --- SAVE INVOICE TO GOOGLE APPS SCRIPT ---
         function saveFullInvoice() {
             const invoiceNo = document.getElementById('invoiceNo').value;
             const brand = document.getElementById('brand').value;
@@ -652,21 +618,66 @@
             .then(() => {
                 alert("Invoice Saved & Synced Centralized Online Successfully!");
                 currentInvoiceItems = [];
+                updateItemsUI();
                 document.getElementById('invoiceNo').value = "";
-                document.getElementById('branch').value = ""; 
-                document.getElementById('itemList').innerHTML = "";
-                document.getElementById('invoiceTotalDisplay').textContent = "0.000";
-                resetItemDetails();
-                lastScannedBarcode = null;
+                document.getElementById('branch').value = "";
+                saveBtn.disabled = false;
+                saveBtn.textContent = "Finalize & Save Invoice";
             })
-            .catch(err => {
-                alert("Error saving invoice. Please try again.");
-                console.error(err);
-            })
-            .finally(() => {
+            .catch(error => {
+                console.error('Error saving invoice:', error);
+                alert("Failed to sync invoice to cloud. Check internet connection.");
                 saveBtn.disabled = false;
                 saveBtn.textContent = "Finalize & Save Invoice";
             });
+        }
+
+        // --- ADMIN EXPORT FUNCTION ---
+        function exportToExcel() {
+            const exportBtn = document.getElementById('exportBtn');
+            exportBtn.disabled = true;
+            exportBtn.textContent = "Fetching Data for Export...";
+
+            fetch(GOOGLE_SCRIPT_URL)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data || data.length === 0) {
+                        alert("No data available to export.");
+                        exportBtn.disabled = false;
+                        exportBtn.textContent = "Export All Data to Excel (CSV)";
+                        return;
+                    }
+
+                    const headers = Object.keys(data[0]);
+                    const csvRows = [headers.join(",")];
+
+                    data.forEach(row => {
+                        const values = headers.map(header => {
+                            const val = row[header] !== undefined ? row[header] : "";
+                            return `"${String(val).replace(/"/g, '""')}"`;
+                        });
+                        csvRows.push(values.join(","));
+                    });
+
+                    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Returns_Export_${new Date().toISOString().split('T')[0]}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    exportBtn.disabled = false;
+                    exportBtn.textContent = "Export All Data to Excel (CSV)";
+                })
+                .catch(err => {
+                    console.error("Export error:", err);
+                    alert("Could not fetch export data from Google Sheets.");
+                    exportBtn.disabled = false;
+                    exportBtn.textContent = "Export All Data to Excel (CSV)";
+                });
         }
     </script>
 </body>
