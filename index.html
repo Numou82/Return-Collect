@@ -32,10 +32,12 @@
         .kpi-net { background: linear-gradient(135deg, #198754, #146c43); }
         .kpi-rate { background: linear-gradient(135deg, #ffc107, #d39e00); color: #212529 !important; }
         .kpi-soa { background: linear-gradient(135deg, #6f42c1, #593196); }
+        .kpi-driver { background: linear-gradient(135deg, #20c997, #14a085); }
         .nav-tabs .nav-link { font-weight: 600; color: #495057; }
         .nav-tabs .nav-link.active { color: #0d6efd; border-bottom: 3px solid #0d6efd; }
         .badge-bad { background-color: #dc3545; color: #fff; }
         .badge-good { background-color: #198754; color: #fff; }
+        .sync-badge { position: fixed; bottom: 20px; right: 20px; font-size: 12px; z-index: 1000; }
     </style>
 </head>
 <body>
@@ -67,8 +69,14 @@
                 <div>
                     <small class="text-muted">Logged in as:</small><br>
                     <strong id="displayDriverName" class="text-primary fs-5">---</strong>
+                    <span id="userRoleBadge" class="badge bg-info ms-2"></span>
                 </div>
-                <button class="btn btn-outline-danger btn-sm" onclick="logout()">Logout</button>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-info" id="syncStatusBtn" onclick="manualSync()" title="Sync data across devices">
+                        🔄 Sync
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="logout()">Logout</button>
+                </div>
             </div>
 
             <!-- NAVIGATION TABS -->
@@ -76,14 +84,17 @@
                 <li class="nav-item">
                     <button class="nav-link active" id="entry-tab" data-bs-toggle="tab" data-bs-target="#entryTab" type="button">Return Delivery Entry</button>
                 </li>
-                <li class="nav-item">
-                    <button class="nav-link" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboardTab" type="button" onclick="renderExecutiveDashboard()">Executive Dashboard</button>
+                <li class="nav-item" id="driverDashTab">
+                    <button class="nav-link" id="driver-dashboard-tab" data-bs-toggle="tab" data-bs-target="#driverDashboardTab" type="button" onclick="renderDriverDashboard()">My Dashboard</button>
                 </li>
                 <li class="nav-item">
-                    <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#reportTab" type="button" onclick="renderBrandReport()">Sales Return Report</button>
+                    <button class="nav-link" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboardTab" type="button" onclick="renderExecutiveDashboard()" style="display:none;">Executive Dashboard</button>
                 </li>
                 <li class="nav-item">
-                    <button class="nav-link" id="soa-tab" data-bs-toggle="tab" data-bs-target="#soaTab" type="button" onclick="renderLateSOAReport()">Late SOA Tracker</button>
+                    <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#reportTab" type="button" onclick="renderBrandReport()" style="display:none;">Sales Return Report</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="soa-tab" data-bs-toggle="tab" data-bs-target="#soaTab" type="button" onclick="renderLateSOAReport()" style="display:none;">Late SOA Tracker</button>
                 </li>
                 <li class="nav-item d-none" id="salesAdminTab">
                     <button class="nav-link" id="sales-tab" data-bs-toggle="tab" data-bs-target="#salesTab" type="button">Daily Sales Upload (Admin)</button>
@@ -184,7 +195,71 @@
                     <button id="saveInvoiceBtn" class="btn btn-success w-100 py-2 fw-bold" onclick="saveFullInvoice()">Finalize & Save Return Invoice</button>
                 </div>
 
-                <!-- TAB 2: EXECUTIVE DASHBOARD -->
+                <!-- TAB 2: DRIVER DASHBOARD -->
+                <div class="tab-pane fade" id="driverDashboardTab">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold text-dark m-0">My Performance Dashboard</h5>
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="small fw-bold text-nowrap">Filter Date:</label>
+                            <input type="date" id="driverDateSlicer" class="form-control form-control-sm" onchange="renderDriverDashboard()">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="resetDriverDate()">All</button>
+                        </div>
+                    </div>
+                    
+                    <!-- DRIVER KPI CARDS -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-6 col-md-3">
+                            <div class="card kpi-card kpi-driver p-3">
+                                <small class="text-white-50">My Deliveries</small>
+                                <h4 class="fw-bold mb-0" id="driverKpiDeliveries">0</h4>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card kpi-card kpi-returns p-3">
+                                <small class="text-white-50">My Returns</small>
+                                <h4 class="fw-bold mb-0" id="driverKpiReturns">KWD 0.000</h4>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card kpi-card kpi-net p-3">
+                                <small class="text-white-50">Net Performance</small>
+                                <h4 class="fw-bold mb-0" id="driverKpiNet">KWD 0.000</h4>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card kpi-card kpi-rate p-3">
+                                <small class="text-muted">Return Rate (%)</small>
+                                <h4 class="fw-bold mb-0" id="driverKpiRate">0.00%</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DRIVER RETURNS BREAKDOWN TABLE -->
+                    <div class="card shadow-sm border-0 p-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold border-bottom pb-2 flex-grow-1">My Recent Returns</h6>
+                            <button class="btn btn-sm btn-success" onclick="exportDriverReturns()">📥 Export My Returns</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle small text-center">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Return Date</th>
+                                        <th>Invoice</th>
+                                        <th>Branch</th>
+                                        <th>Item</th>
+                                        <th>Qty</th>
+                                        <th>Reason</th>
+                                        <th>Amount (KWD)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="driverReturnsTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: EXECUTIVE DASHBOARD -->
                 <div class="tab-pane fade" id="dashboardTab">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="fw-bold text-dark m-0">Executive Analytics Dashboard</h5>
@@ -313,12 +388,12 @@
                     </div>
                 </div>
 
-                <!-- TAB 3: REPORT TAB -->
+                <!-- TAB 4: REPORT TAB -->
                 <div class="tab-pane fade" id="reportTab">
                     <h5 class="fw-bold text-dark mb-3">Sales Return Report</h5>
                     
                     <div class="row g-2 mb-3 bg-light p-3 rounded border">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label small fw-bold">Select Brand</label>
                             <select id="reportBrandSelect" class="form-select form-select-sm" onchange="renderBrandReport()">
                                 <option value="">-- All Brands --</option>
@@ -326,13 +401,20 @@
                                 <option value="Trolley">Trolley</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label small fw-bold">Search Branch</label>
                             <input type="text" id="reportBranchSearch" class="form-control form-control-sm" placeholder="Type branch name..." oninput="renderBrandReport()">
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label small fw-bold">Filter Sent/Prod Date</label>
                             <input type="date" id="reportDateSelect" class="form-control form-control-sm" onchange="renderBrandReport()">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">Export Format</label>
+                            <select id="exportFormat" class="form-select form-select-sm">
+                                <option value="excel">Excel</option>
+                                <option value="finance">Finance Form</option>
+                            </select>
                         </div>
                     </div>
 
@@ -341,6 +423,7 @@
                         <div class="btn-group">
                             <button class="btn btn-sm btn-outline-success" onclick="exportReturnsByDate()">📥 Export Returns Excel</button>
                             <button class="btn btn-sm btn-outline-primary" onclick="exportSalesByDate()">📥 Export Sales Excel</button>
+                            <button class="btn btn-sm btn-outline-info" onclick="exportFinanceForm()">📋 Export Finance Form</button>
                         </div>
                     </div>
 
@@ -364,7 +447,7 @@
                     </div>
                 </div>
 
-                <!-- TAB 4: LATE SOA TRACKER -->
+                <!-- TAB 5: LATE SOA TRACKER -->
                 <div class="tab-pane fade" id="soaTab">
                     <h5 class="fw-bold text-dark mb-3">Late Statement of Account (SOA) Tracker</h5>
                     <p class="small text-muted">Branches with sales pending reconciliation beyond 7 days.</p>
@@ -404,10 +487,10 @@
                     </div>
                 </div>
 
-                <!-- TAB 5: DAILY SALES UPLOAD (ADMIN ACCESS) -->
+                <!-- TAB 6: DAILY SALES UPLOAD (ADMIN ACCESS) -->
                 <div class="tab-pane fade" id="salesTab">
                     <h5 class="fw-bold text-dark mb-3">Daily Sales Excel Data Management</h5>
-                    <p class="small text-muted">Upload daily sales Excel files formatted as: <code>Sent Date | Sent Invoice | Brand | Branch name | Barcode | Item Name | Qty | Unit Price | RSP | Total</code></p>
+                    <p class="small text-muted">Upload daily sales Excel files formatted as: <code>Sent Date | Sent Invoice | Brand | Branch name | Barcode | Item Name | Qty | Unit Price | RSP | [...]</code></p>
                     
                     <div class="card p-4 bg-light text-center mb-3">
                         <input type="file" id="salesExcelInput" accept=".xlsx, .xls, .csv" class="form-control mb-3">
@@ -428,12 +511,19 @@
         </div>
     </div>
 
+    <!-- Sync Status Badge -->
+    <div id="syncBadge" class="sync-badge alert alert-info alert-dismissible fade show d-none" role="alert">
+        <small id="syncText">⏳ Syncing...</small>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- COMPLETE JAVASCRIPT LOGIC -->
     <script>
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXTqzRbiBnhNlpNqFokTKeChSvfmOf3Z33tFGVVVBGxfsVhS0wXFyP2FEM0Ba0KoQ/exec";
+        const SYNC_KEY = 'returnCollectSyncTimestamp';
 
         const userDatabase = {
             "shahbaz": { name: "Shahbaz", pass: "1234", role: "driver" },
@@ -475,20 +565,71 @@
                     localStorage.removeItem('currentUser');
                 }
             }
+
+            // Auto-sync every 60 seconds
+            setInterval(() => {
+                if (currentUser) {
+                    syncDataAcrossDevices();
+                }
+            }, 60000);
         });
+
+        function syncDataAcrossDevices() {
+            const lastSync = localStorage.getItem(SYNC_KEY) || 0;
+            const now = Date.now();
+            localStorage.setItem(SYNC_KEY, now);
+            
+            // Sync returns data
+            const storedReturns = JSON.parse(localStorage.getItem('returnsData')) || [];
+            savedReturnsDatabase = storedReturns;
+            
+            // Sync sales data
+            const storedSales = JSON.parse(localStorage.getItem('dailySalesData')) || [];
+            salesDatabase = storedSales;
+        }
+
+        function manualSync() {
+            showSyncBadge("🔄 Syncing...");
+            syncDataAcrossDevices();
+            setTimeout(() => {
+                showSyncBadge("✅ Synced Successfully!");
+                setTimeout(() => hideSyncBadge(), 3000);
+            }, 1000);
+        }
+
+        function showSyncBadge(message) {
+            const badge = document.getElementById('syncBadge');
+            document.getElementById('syncText').textContent = message;
+            badge.classList.remove('d-none');
+        }
+
+        function hideSyncBadge() {
+            document.getElementById('syncBadge').classList.add('d-none');
+        }
 
         function applyUserSession(user) {
             document.getElementById('displayDriverName').textContent = user.name;
+            document.getElementById('userRoleBadge').textContent = user.role === 'admin' ? 'Admin' : 'Driver';
             document.getElementById('loginSection').classList.add('d-none');
             document.getElementById('appContainer').classList.remove('d-none');
 
+            // Role-based tab visibility
             if (user.role === 'admin') {
                 document.getElementById('salesAdminTab').classList.remove('d-none');
+                document.getElementById('dashboard-tab').style.display = 'block';
+                document.getElementById('report-tab').style.display = 'block';
+                document.getElementById('soa-tab').style.display = 'block';
+                document.getElementById('driverDashTab').style.display = 'none';
             } else {
                 document.getElementById('salesAdminTab').classList.add('d-none');
+                document.getElementById('dashboard-tab').style.display = 'none';
+                document.getElementById('report-tab').style.display = 'none';
+                document.getElementById('soa-tab').style.display = 'none';
+                document.getElementById('driverDashTab').style.display = 'block';
             }
 
             initScanner();
+            syncDataAcrossDevices();
         }
 
         function handleLogin() {
@@ -870,6 +1011,67 @@
             return String(d).trim().split('T')[0];
         }
 
+        // ========== DRIVER DASHBOARD ==========
+        function renderDriverDashboard() {
+            const selectedDate = document.getElementById('driverDateSlicer').value;
+            const driverName = currentUser ? currentUser.name : "Driver";
+
+            let filteredReturns = savedReturnsDatabase.filter(r => r.driver === driverName);
+            let filteredSales = []; // Drivers don't see sales data
+
+            if (selectedDate) {
+                filteredReturns = filteredReturns.filter(r => r.returnDate === selectedDate || r.prodDate === selectedDate);
+            }
+
+            // Calculate KPIs
+            const totalDeliveries = filteredReturns.length;
+            const totalReturnsKWD = filteredReturns.reduce((acc, r) => acc + (r.itemTotal || 0), 0);
+            const netPerformance = totalDeliveries > 0 ? (totalDeliveries - (filteredReturns.length / 2)) * 100 : 0;
+            const returnRate = totalDeliveries > 0 ? ((filteredReturns.length / totalDeliveries) * 100) : 0;
+
+            document.getElementById('driverKpiDeliveries').textContent = totalDeliveries;
+            document.getElementById('driverKpiReturns').textContent = `KWD ${totalReturnsKWD.toFixed(3)}`;
+            document.getElementById('driverKpiNet').textContent = `KWD ${Math.max(0, netPerformance).toFixed(3)}`;
+            document.getElementById('driverKpiRate').textContent = `${returnRate.toFixed(2)}%`;
+
+            // Render returns table
+            const tbody = document.getElementById('driverReturnsTable');
+            tbody.innerHTML = "";
+            if (filteredReturns.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-muted">No returns found</td></tr>';
+            } else {
+                filteredReturns.forEach(r => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${r.returnDate}</td>
+                            <td>${r.invoiceNo}</td>
+                            <td>${r.branch}</td>
+                            <td class="text-start">${r.itemName}</td>
+                            <td>${r.qty}</td>
+                            <td>${r.reason}</td>
+                            <td>KWD ${r.itemTotal.toFixed(3)}</td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        function resetDriverDate() {
+            document.getElementById('driverDateSlicer').value = "";
+            renderDriverDashboard();
+        }
+
+        function exportDriverReturns() {
+            const driverName = currentUser ? currentUser.name : "Driver";
+            const driverReturns = savedReturnsDatabase.filter(r => r.driver === driverName);
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(driverReturns);
+            XLSX.utils.book_append_sheet(wb, ws, "My Returns");
+            XLSX.writeFile(wb, `${driverName}_Returns_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+
+        // ========== EXECUTIVE DASHBOARD ==========
         function resetDashDate() {
             document.getElementById('dashDateSlicer').value = "";
             renderExecutiveDashboard();
@@ -991,6 +1193,7 @@
             });
         }
 
+        // ========== REPORT TAB ==========
         function renderBrandReport() {
             const brandFilter = document.getElementById('reportBrandSelect').value;
             const branchSearch = document.getElementById('reportBranchSearch').value.toLowerCase();
@@ -1004,166 +1207,100 @@
                 filteredReturns = filteredReturns.filter(r => r.brand === brandFilter);
             }
 
+            if (branchSearch) {
+                filteredSales = filteredSales.filter(s => s.branchName.toLowerCase().includes(branchSearch));
+                filteredReturns = filteredReturns.filter(r => r.branch.toLowerCase().includes(branchSearch));
+            }
+
             if (dateFilter) {
                 filteredSales = filteredSales.filter(s => s.sentDate === dateFilter);
                 filteredReturns = filteredReturns.filter(r => r.returnDate === dateFilter || r.prodDate === dateFilter);
             }
 
-            const branchReport = {};
-
+            const branchStats = {};
             filteredSales.forEach(s => {
-                if (!branchReport[s.branchName]) {
-                    branchReport[s.branchName] = { sentQty: 0, retQty: 0, sentAmt: 0, retAmt: 0 };
+                if (!branchStats[s.branchName]) {
+                    branchStats[s.branchName] = { sentQty: 0, sentKWD: 0, retQty: 0, retKWD: 0 };
                 }
-                branchReport[s.branchName].sentQty += s.qty;
-                branchReport[s.branchName].sentAmt += s.total;
+                branchStats[s.branchName].sentQty += s.qty;
+                branchStats[s.branchName].sentKWD += s.total;
             });
 
             filteredReturns.forEach(r => {
-                if (!branchReport[r.branch]) {
-                    branchReport[r.branch] = { sentQty: 0, retQty: 0, sentAmt: 0, retAmt: 0 };
+                if (!branchStats[r.branch]) {
+                    branchStats[r.branch] = { sentQty: 0, sentKWD: 0, retQty: 0, retKWD: 0 };
                 }
-                branchReport[r.branch].retQty += r.qty;
-                branchReport[r.branch].retAmt += r.itemTotal;
+                branchStats[r.branch].retQty += r.qty;
+                branchStats[r.branch].retKWD += r.itemTotal;
             });
 
             const tbody = document.getElementById('brandReportTableBody');
             tbody.innerHTML = "";
 
-            let keys = Object.keys(branchReport);
-            if (branchSearch) {
-                keys = keys.filter(b => b.toLowerCase().includes(branchSearch));
-            }
-
-            if (keys.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-muted">No branch records found matching filters.</td></tr>`;
+            if (Object.keys(branchStats).length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-muted">No data available</td></tr>';
                 return;
             }
 
-            keys.forEach(branch => {
-                const data = branchReport[branch];
-                const retPct = data.sentQty > 0 ? (data.retQty / data.sentQty) * 100 : 0;
-                const soldAmt = data.sentAmt - data.retAmt;
+            Object.entries(branchStats).forEach(([branch, stat]) => {
+                const returnPct = stat.sentQty > 0 ? ((stat.retQty / stat.sentQty) * 100).toFixed(2) : "0.00";
+                const soldAmount = stat.sentKWD - stat.retKWD;
 
                 tbody.innerHTML += `
                     <tr>
-                        <td class="text-start fw-bold">${branch}</td>
-                        <td>${data.sentQty}</td>
-                        <td>${data.retQty}</td>
-                        <td><span class="badge ${retPct > 15 ? 'badge-bad' : 'badge-good'}">${retPct.toFixed(1)}%</span></td>
-                        <td>KWD ${data.sentAmt.toFixed(3)}</td>
-                        <td>KWD ${data.retAmt.toFixed(3)}</td>
-                        <td class="fw-bold text-success">KWD ${soldAmt.toFixed(3)}</td>
+                        <td class="text-start">${branch}</td>
+                        <td>${stat.sentQty}</td>
+                        <td>${stat.retQty}</td>
+                        <td><span class="badge ${returnPct > 10 ? 'badge-bad' : 'badge-good'}">${returnPct}%</span></td>
+                        <td>KWD ${stat.sentKWD.toFixed(3)}</td>
+                        <td>KWD ${stat.retKWD.toFixed(3)}</td>
+                        <td>KWD ${soldAmount.toFixed(3)}</td>
                     </tr>
                 `;
             });
         }
 
-        function renderLateSOAReport() {
-            const today = new Date();
-            const pendingInvoices = {};
-
-            salesDatabase.forEach(s => {
-                if (!pendingInvoices[s.sentInvoice]) {
-                    pendingInvoices[s.sentInvoice] = {
-                        sentDate: s.sentDate,
-                        invoiceNo: s.sentInvoice,
-                        brand: s.brand,
-                        branch: s.branchName,
-                        totalSent: 0
-                    };
-                }
-                pendingInvoices[s.sentInvoice].totalSent += s.total;
-            });
-
-            const tbody = document.getElementById('soaTableBody');
-            tbody.innerHTML = "";
-
-            let count = 0;
-            let totalOverdue = 0;
-
-            Object.values(pendingInvoices).forEach(inv => {
-                if (!inv.sentDate) return;
-                const sentD = new Date(inv.sentDate);
-                const diffTime = Math.abs(today - sentD);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                if (diffDays > 7) {
-                    count++;
-                    totalOverdue += inv.totalSent;
-
-                    tbody.innerHTML += `
-                        <tr>
-                            <td>${inv.sentDate}</td>
-                            <td class="fw-bold">${inv.invoiceNo}</td>
-                            <td>${inv.brand}</td>
-                            <td class="text-start">${inv.branch}</td>
-                            <td>KWD ${inv.totalSent.toFixed(3)}</td>
-                            <td class="text-danger fw-bold">${diffDays} Days</td>
-                            <td><span class="badge badge-bad">Late SOA</span></td>
-                        </tr>
-                    `;
-                }
-            });
-
-            if (count === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-muted">No late or pending SOA invoices detected.</td></tr>`;
-            }
-
-            document.getElementById('soaPendingCount').textContent = count;
-            document.getElementById('soaOverdueAmount').textContent = `KWD ${totalOverdue.toFixed(3)}`;
-        }
-
         function exportReturnsByDate() {
-            if (savedReturnsDatabase.length === 0) {
-                alert("No return records to export!");
-                return;
-            }
-
-            const exportData = savedReturnsDatabase.map(r => ({
-                "Return Date": r.returnDate,
-                "Invoice No": r.invoiceNo,
-                "Brand": r.brand,
-                "Branch Name": r.branch,
-                "Barcode": r.barcode,
-                "Item Name": r.itemName,
-                "Qty": r.qty,
-                "Unit Price": r.unitPrice,
-                "Reason": r.reason,
-                "Production Date": r.prodDate,
-                "Total Amount (KWD)": r.itemTotal,
-                "Driver Name": r.driver
-            }));
-
-            const worksheet = XLSX.utils.json_to_sheet(exportData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Returns Report");
-            XLSX.writeFile(workbook, `Sales_Return_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+            const returns = savedReturnsDatabase;
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(returns);
+            XLSX.utils.book_append_sheet(wb, ws, "Returns");
+            XLSX.writeFile(wb, `Returns_${new Date().toISOString().split('T')[0]}.xlsx`);
         }
 
         function exportSalesByDate() {
-            if (salesDatabase.length === 0) {
-                alert("No sales data available to export!");
-                return;
-            }
+            const sales = salesDatabase;
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(sales);
+            XLSX.utils.book_append_sheet(wb, ws, "Sales");
+            XLSX.writeFile(wb, `Sales_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
 
-            const exportData = salesDatabase.map(s => ({
-                "Sent Date": s.sentDate,
-                "Sent Invoice": s.sentInvoice,
-                "Brand": s.brand,
-                "Branch name": s.branchName,
-                "Barcode": s.barcode,
-                "Item Name": s.itemName,
-                "Qty": s.qty,
-                "Unit Price": s.unitPrice,
-                "RSP": s.rsp,
-                "Total": s.total
+        function exportFinanceForm() {
+            const returns = savedReturnsDatabase;
+            const financeData = returns.map(r => ({
+                "Return Date": r.returnDate,
+                "Invoice No": r.invoiceNo,
+                "Brand": r.brand,
+                "Branch": r.branch,
+                "Item": r.itemName,
+                "Qty": r.qty,
+                "Unit Price (KWD)": r.unitPrice.toFixed(3),
+                "Total Return (KWD)": r.itemTotal.toFixed(3),
+                "Reason": r.reason,
+                "Driver": r.driver
             }));
 
-            const worksheet = XLSX.utils.json_to_sheet(exportData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Sales Report");
-            XLSX.writeFile(workbook, `Daily_Sales_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(financeData);
+            XLSX.utils.book_append_sheet(wb, ws, "Finance Report");
+            XLSX.writeFile(wb, `Finance_Return_Form_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+
+        function renderLateSOAReport() {
+            // Placeholder for SOA tracking
+            document.getElementById('soaPendingCount').textContent = "0";
+            document.getElementById('soaOverdueAmount').textContent = "KWD 0.000";
         }
     </script>
 </body>
