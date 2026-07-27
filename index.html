@@ -8,24 +8,34 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- HTML5-QRCode Library -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <!-- Chart.js -->
+    <!-- Chart.js for Dashboard Visuals -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- SheetJS for Excel Exports & Reads -->
+    <!-- SheetJS for Excel (.xlsx, .xls) Reading -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
-        body { background-color: #f4f6f9; }
+        body {
+            background-color: #f4f6f9;
+        }
         .app-card {
-            max-width: 950px;
+            max-width: 900px;
             margin: 20px auto;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.08);
         }
-        #reader { width: 100%; border-radius: 8px; overflow: hidden; }
-        .autocomplete-wrapper { position: relative; }
+        #reader {
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .autocomplete-wrapper {
+            position: relative;
+        }
         .autocomplete-suggestions {
             position: absolute;
-            top: 100%; left: 0; right: 0;
+            top: 100%;
+            left: 0;
+            right: 0;
             background: #fff;
             border: 1px solid #ced4da;
             border-radius: 0 0 6px 6px;
@@ -39,8 +49,14 @@
             cursor: pointer;
             border-bottom: 1px solid #f1f1f1;
         }
-        .autocomplete-suggestion:hover { background-color: #e9ecef; }
-        .kpi-card { border-radius: 10px; border: none; color: #fff; }
+        .autocomplete-suggestion:hover {
+            background-color: #e9ecef;
+        }
+        .kpi-card {
+            border-radius: 10px;
+            border: none;
+            color: #fff;
+        }
         .kpi-sales { background: linear-gradient(135deg, #0d6efd, #0a58ca); }
         .kpi-returns { background: linear-gradient(135deg, #dc3545, #b02a37); }
         .kpi-net { background: linear-gradient(135deg, #198754, #146c43); }
@@ -80,106 +96,23 @@
                 <button class="btn btn-outline-danger btn-sm" onclick="logout()">Logout</button>
             </div>
 
-            <!-- NAVIGATION TABS (REORDERED: Dashboard Left -> Entry -> Sales -> Export) -->
+            <!-- NAVIGATION TABS (REORDERED) -->
             <ul class="nav nav-tabs mb-4" id="appTabs" role="tablist">
                 <li class="nav-item">
-                    <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboardTab" type="button" onclick="renderDashboard()">KPI & Sales Analysis</button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link" id="entry-tab" data-bs-toggle="tab" data-bs-target="#entryTab" type="button">Return Delivery Entry</button>
+                    <button class="nav-link active" id="entry-tab" data-bs-toggle="tab" data-bs-target="#entryTab" type="button">Return Delivery Entry</button>
                 </li>
                 <li class="nav-item d-none" id="salesAdminTab">
-                    <button class="nav-link" id="sales-tab" data-bs-toggle="tab" data-bs-target="#salesTab" type="button">Daily Sales Upload (Admin)</button>
+                    <button class="nav-link" id="sales-tab" data-bs-toggle="tab" data-bs-target="#salesTab" type="button">Sales Upload</button>
                 </li>
-                <li class="nav-item d-none" id="exportAdminTab">
-                    <button class="nav-link" id="export-tab" data-bs-toggle="tab" data-bs-target="#exportTab" type="button">Export Data</button>
+                <li class="nav-item">
+                    <button class="nav-link" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboardTab" type="button" onclick="renderDashboard()">Sales Analysis</button>
                 </li>
             </ul>
 
             <div class="tab-content" id="appTabContent">
                 
-                <!-- TAB 1: DASHBOARD & REPORTING (LEFT SIDE) -->
-                <div class="tab-pane fade show active" id="dashboardTab">
-                    <h5 class="fw-bold text-dark mb-3">Sales & Return Executive Dashboard</h5>
-                    
-                    <!-- KPI CARDS -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-6 col-md-3">
-                            <div class="card kpi-card kpi-sales p-3">
-                                <small class="text-white-50">Total Sent Sales</small>
-                                <h4 class="fw-bold mb-0" id="kpiTotalSales">KWD 0.000</h4>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="card kpi-card kpi-returns p-3">
-                                <small class="text-white-50">Total Returns</small>
-                                <h4 class="fw-bold mb-0" id="kpiTotalReturns">KWD 0.000</h4>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="card kpi-card kpi-net p-3">
-                                <small class="text-white-50">Net Delivered Sales</small>
-                                <h4 class="fw-bold mb-0" id="kpiNetSales">KWD 0.000</h4>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="card kpi-card kpi-rate p-3">
-                                <small class="text-muted">Return Rate (%)</small>
-                                <h4 class="fw-bold mb-0" id="kpiReturnRate">0.00%</h4>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- CHART -->
-                    <div class="card p-3 mb-4 shadow-sm border-0">
-                        <h6 class="fw-bold">Sales vs Returns Overview</h6>
-                        <canvas id="salesChart" style="max-height: 250px;"></canvas>
-                    </div>
-
-                    <!-- REPORT TABLE -->
-                    <div class="card p-3 shadow-sm border-0">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="fw-bold m-0">Branch Item Sales & Pending Return Report</h6>
-                            <button class="btn btn-sm btn-outline-primary" onclick="renderDashboard()">Refresh Data</button>
-                        </div>
-                        
-                        <div class="row g-2 mb-3">
-                            <div class="col-md-5">
-                                <label class="form-label small">Filter Branch</label>
-                                <input type="text" id="reportBranchFilter" class="form-control form-control-sm" placeholder="All Branches" oninput="filterReportTable()">
-                            </div>
-                            <div class="col-md-5">
-                                <label class="form-label small">Filter Sent/Prod Date</label>
-                                <input type="date" id="reportDateFilter" class="form-control form-control-sm" onchange="filterReportTable()">
-                            </div>
-                            <div class="col-md-2 d-flex align-items-end">
-                                <button class="btn btn-sm btn-secondary w-100" onclick="resetReportFilter()">Reset</button>
-                            </div>
-                        </div>
-
-                        <div class="table-responsive">
-                            <table class="table table-bordered align-middle text-center small">
-                                <thead class="table-dark">
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Branch</th>
-                                        <th>Item Name</th>
-                                        <th>Sent Qty</th>
-                                        <th>Returned Qty</th>
-                                        <th>Net Sold Qty</th>
-                                        <th>Net Amount (KWD)</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="reportTableBody">
-                                    <tr><td colspan="7" class="text-muted">No Sales Data Uploaded Yet.</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TAB 2: RETURN ENTRY FORM -->
-                <div class="tab-pane fade" id="entryTab">
+                <!-- TAB 1: RETURN DELIVERY ENTRY -->
+                <div class="tab-pane fade show active" id="entryTab">
                     <h4 class="text-center mb-3 text-secondary">New Return Delivery Note</h4>
 
                     <!-- INVOICE HEADER DETAILS -->
@@ -251,7 +184,7 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">Production Date</label>
+                            <label class="form-label small fw-bold">Production Date (Sent Date Alignment)</label>
                             <input type="date" id="prodDate" class="form-control form-control-sm">
                         </div>
 
@@ -269,12 +202,20 @@
                     </div>
 
                     <button id="saveInvoiceBtn" class="btn btn-success w-100 py-2 fw-bold" onclick="saveFullInvoice()">Finalize & Save Return Invoice</button>
+
+                    <!-- ADMIN ONLY: EXPORT RETURN DATA -->
+                    <div id="returnExportSection" class="mt-3 pt-3 border-top d-none">
+                        <h6 class="fw-bold text-dark">Admin Data Export</h6>
+                        <button id="exportBtn" class="btn btn-success w-100" onclick="exportToExcel()">
+                            Export Return Data to Excel (CSV)
+                        </button>
+                    </div>
                 </div>
 
-                <!-- TAB 3: DAILY SALES UPLOAD (ADMIN ONLY) -->
+                <!-- TAB 2: DAILY SALES DATA UPLOAD (ADMIN ONLY) -->
                 <div class="tab-pane fade" id="salesTab">
                     <h5 class="fw-bold text-dark mb-3">Daily Sales Excel Data Management</h5>
-                    <p class="small text-muted">Upload daily sales Excel files (<code>.xlsx</code>, <code>.xls</code>) or CSV format.</p>
+                    <p class="small text-muted">Upload your daily sales Excel file (<code>.xlsx</code> or <code>.xls</code>) or CSV format.</p>
                     
                     <div class="card p-4 border-dashed bg-light text-center mb-3">
                         <input type="file" id="salesExcelInput" accept=".xlsx, .xls, .csv" class="form-control mb-3">
@@ -282,30 +223,98 @@
                     </div>
                 </div>
 
-                <!-- TAB 4: EXPORT DATA (ADMIN/AUTHORIZED ONLY) -->
-                <div class="tab-pane fade" id="exportTab">
-                    <h5 class="fw-bold text-dark mb-3">Export Return & Sales Data</h5>
-                    <p class="small text-muted">Download all processed returns in Excel (.xlsx) or CSV format.</p>
+                <!-- TAB 3: SALES ANALYSIS DASHBOARD -->
+                <div class="tab-pane fade" id="dashboardTab">
+                    <h5 class="fw-bold text-dark mb-3">Sales & Return Executive Dashboard</h5>
                     
-                    <div class="d-grid gap-2">
-                        <button class="btn btn-success py-2 fw-bold" onclick="exportReturnsToExcel()">
-                            Export Return Delivery Data to Excel (.xlsx)
-                        </button>
-                        <button class="btn btn-outline-success py-2 fw-bold" onclick="exportReturnsToCSV()">
-                            Export Return Delivery Data to CSV
-                        </button>
+                    <!-- KPI CARDS -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-6 col-md-3">
+                            <div class="card kpi-card kpi-sales p-3">
+                                <small class="text-white-50">Total Sent Sales</small>
+                                <h4 class="fw-bold mb-0" id="kpiTotalSales">KWD 0.000</h4>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card kpi-card kpi-returns p-3">
+                                <small class="text-white-50">Total Returns</small>
+                                <h4 class="fw-bold mb-0" id="kpiTotalReturns">KWD 0.000</h4>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card kpi-card kpi-net p-3">
+                                <small class="text-white-50">Net Delivered Sales</small>
+                                <h4 class="fw-bold mb-0" id="kpiNetSales">KWD 0.000</h4>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card kpi-card kpi-rate p-3">
+                                <small class="text-muted">Return Rate (%)</small>
+                                <h4 class="fw-bold mb-0" id="kpiReturnRate">0.00%</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CHART -->
+                    <div class="card p-3 mb-4 shadow-sm border-0">
+                        <h6 class="fw-bold">Sales vs Returns Overview</h6>
+                        <canvas id="salesChart" style="max-height: 250px;"></canvas>
+                    </div>
+
+                    <!-- PENDING RETURNS REPORT -->
+                    <div class="card p-3 shadow-sm border-0">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold m-0">Branch Item Sales & Pending Return Report</h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="renderDashboard()">Refresh Data</button>
+                        </div>
+                        
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-5">
+                                <label class="form-label small">Filter Branch</label>
+                                <input type="text" id="reportBranchFilter" class="form-control form-control-sm" placeholder="All Branches" oninput="filterReportTable()">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small">Filter Sent/Prod Date</label>
+                                <input type="date" id="reportDateFilter" class="form-control form-control-sm" onchange="filterReportTable()">
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button class="btn btn-sm btn-secondary w-100" onclick="resetReportFilter()">Reset</button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered align-middle text-center small">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Branch</th>
+                                        <th>Item Name</th>
+                                        <th>Sent Qty</th>
+                                        <th>Returned Qty</th>
+                                        <th>Net Sold Qty</th>
+                                        <th>Net Amount (KWD)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportTableBody">
+                                    <tr><td colspan="7" class="text-muted">No Sales Data Uploaded Yet.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
             </div>
+
         </div>
     </div>
 
-    <!-- Bootstrap 5 JS Bundle (CRITICAL FIX: Changed from CSS link to Bundle JS) -->
+    <!-- Bootstrap 5 JS Bundle (FIXED: was loading CSS as JS before) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- APPLICATION LOGIC -->
+    <!-- JAVASCRIPT LOGIC -->
     <script>
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXTqzRbiBnhNlpNqFokTKeChSvfmOf3Z33tFGVVVBGxfsVhS0wXFyP2FEM0Ba0KoQ/exec";
+
         const userDatabase = {
             "shahbaz": { name: "Shahbaz", pass: "1234", role: "driver" },
             "abdullah": { name: "Abdullah", pass: "1234", role: "driver" },
@@ -316,10 +325,10 @@
         let currentUser = null;
         let chartInstance = null;
         let salesDatabase = JSON.parse(localStorage.getItem('dailySalesData')) || [];
-        let returnDatabase = JSON.parse(localStorage.getItem('returnsData')) || [];
-        let currentInvoiceItems = [];
 
         window.addEventListener('DOMContentLoaded', () => {
+            document.body.addEventListener('click', () => { initAudioContext(); }, { once: false });
+            
             const today = new Date().toISOString().split('T')[0];
             const returnDateInput = document.getElementById('returnDateHeader');
             if (returnDateInput) returnDateInput.value = today;
@@ -347,16 +356,15 @@
             document.getElementById('loginSection').classList.add('d-none');
             document.getElementById('appContainer').classList.remove('d-none');
 
-            // Set Admin Authorities
             if (user.role === 'admin') {
                 document.getElementById('salesAdminTab').classList.remove('d-none');
-                document.getElementById('exportAdminTab').classList.remove('d-none');
+                document.getElementById('returnExportSection').classList.remove('d-none');
             } else {
                 document.getElementById('salesAdminTab').classList.add('d-none');
-                document.getElementById('exportAdminTab').classList.add('d-none');
+                document.getElementById('returnExportSection').classList.add('d-none');
             }
 
-            renderDashboard();
+            initScanner();
         }
 
         function handleLogin() {
@@ -365,6 +373,7 @@
             const user = userDatabase[idInput];
 
             if (user && user.pass === passInput) {
+                initAudioContext();
                 currentUser = user;
                 localStorage.setItem('currentUser', JSON.stringify(user));
                 applyUserSession(user);
@@ -382,6 +391,35 @@
             document.getElementById('loginSection').classList.remove('d-none');
         }
 
+        // --- AUDIO GENERATOR ---
+        let audioCtx = null;
+        function initAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playBeepSound() {
+            try {
+                initAudioContext();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(1200, audioCtx.currentTime); 
+                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.12);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.12);
+            } catch(e) {
+                console.log("Audio feedback error:", e);
+            }
+        }
+
         // --- PRODUCT DATABASE ---
         const productDatabase = {
             "7517846597753": { "name": "Beef Stroganoff with Penne Pasta", "canteenPrice": 1.625, "trolleyPrice": 1.575 },
@@ -390,15 +428,79 @@
             "7517846598408": { "name": "Chicken Club Sandwich", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
             "7517846598392": { "name": "Chicken Shish Taouk Wrap", "canteenPrice": 0.78, "trolleyPrice": 0.78 },
             "7517846598231": { "name": "Chipotle Egg Burger", "canteenPrice": 0.813, "trolleyPrice": 0.813 },
-            "7517846597180": { "name": "Classic Beef Burger", "canteenPrice": 1.294, "trolleyPrice": 1.294 }
+            "7517846597180": { "name": "Classic Beef Burger", "canteenPrice": 1.294, "trolleyPrice": 1.294 },
+            "7517846598330": { "name": "Creamy Chicken Caesar Wrap", "canteenPrice": 0.748, "trolleyPrice": 0.748 },
+            "7517846598286": { "name": "Creamy Shrimp Caesar Salad", "canteenPrice": 1.347, "trolleyPrice": 1.347 },
+            "7517846598163": { "name": "Egg & Turkey Croissant", "canteenPrice": 0.813, "trolleyPrice": 0.813 },
+            "7517846598361": { "name": "Egg Wrap", "canteenPrice": 0.585, "trolleyPrice": 0.585 },
+            "7517846598378": { "name": "Falafel Wrap", "canteenPrice": 0.423, "trolleyPrice": 0.423 },
+            "7517846598309": { "name": "Feta Spinach Strawberry Salad", "canteenPrice": 0.618, "trolleyPrice": 0.618 },
+            "7517846597333": { "name": "Grilled Halloumi Sandwich", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+            "5904223118410": { "name": "Halloumi Sandwich", "canteenPrice": 0.618, "trolleyPrice": 0.618 },
+            "7517846598347": { "name": "Halloumi Wrap", "canteenPrice": 0.618, "trolleyPrice": 0.618 },
+            "7517846598385": { "name": "Labna Potato Wrap", "canteenPrice": 0.455, "trolleyPrice": 0.455 },
+            "5904223218417": { "name": "Labna Sandwich", "canteenPrice": 0.553, "trolleyPrice": 0.553 },
+            "7517846598293": { "name": "Maple Kale Salad", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+            "5904293218454": { "name": "Margherita Pizza", "canteenPrice": 0.585, "trolleyPrice": 0.585 },
+            "7517846598255": { "name": "Marinara Chicken Sandwich", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+            "7517846597906": { "name": "Mexican Nacho Salad OI", "canteenPrice": 1.008, "trolleyPrice": 0.958 },
+            "7517846598156": { "name": "Mix Cheese Croissant", "canteenPrice": 0.748, "trolleyPrice": 0.748 },
+            "5904223219452": { "name": "Mixed Cheese Pizza", "canteenPrice": 0.644, "trolleyPrice": 0.644 },
+            "7517846598187": { "name": "Mozzarella Melt", "canteenPrice": 0.65, "trolleyPrice": 0.65 },
+            "7517846598316": { "name": "Numou French Salad", "canteenPrice": 0.715, "trolleyPrice": 0.715 },
+            "7517846597975": { "name": "Numou Mini Cookies (5 pieces)", "canteenPrice": 0.65, "trolleyPrice": 0.65 },
+            "7517846598422": { "name": "Qaimar & Asal", "canteenPrice": 0.39, "trolleyPrice": 0.39 },
+            "7517846598279": { "name": "Santa Fe Chicken Salad", "canteenPrice": 1.625, "trolleyPrice": 1.51 },
+            "5904223118441": { "name": "Spinach Feta Pizza", "canteenPrice": 0.585, "trolleyPrice": 0.585 },
+            "7517846597678": { "name": "Tapenade Halloumi Sandwich", "canteenPrice": 1.04, "trolleyPrice": 1.04 },
+            "7517846598262": { "name": "Thai Chicken Salad", "canteenPrice": 1.625, "trolleyPrice": 1.38 },
+            "7517846598323": { "name": "Thai Salad Pot", "canteenPrice": 0.78, "trolleyPrice": 0.78 },
+            "5904223218400": { "name": "Turkey Cheddar Croissant", "canteenPrice": 0.644, "trolleyPrice": 0.644 },
+            "7517846598415": { "name": "Turkey Club Sandwich", "canteenPrice": 1.138, "trolleyPrice": 1.138 },
+            "7517846598149": { "name": "Turkey Croissant", "canteenPrice": 0.813, "trolleyPrice": 0.813 },
+            "7517846598224": { "name": "Turkey Melt", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+            "5901234184090": { "name": "Turkey Sandwich", "canteenPrice": 0.618, "trolleyPrice": 0.618 },
+            "7517846598439": { "name": "Turkey with Apricot Jam", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+            "7517846597630": { "name": "Turkey with Creamy Chutney Wrap", "canteenPrice": 1.203, "trolleyPrice": 1.202 },
+            "7517846598354": { "name": "Turkey Wrap", "canteenPrice": 0.748, "trolleyPrice": 0.748 }
         };
 
         const branchDatabase = {
-            "Canteen": ["Waha (Canteen)", "Zain Headquater (Canteen)", "Ministry of Electricity (Canteen)"],
-            "Trolley": ["Jahra - Alfa (TR)", "Oyoon - Oula (TR)", "Sulaibiya (TR)"]
+            "Canteen": [
+                "Waha (Canteen)", "Zain Headquater (Canteen)", "Ministry of Electricity and Water Subhan (Canteen)",
+                "Public Authority of Housing Welfare shuwaikh (Canteen)", "Rihab (Canteen)", "Shuaiba Equate (Canteen)",
+                "Ahmadi Equate (Canteen)", "Awqaf Shuwaikh (Canteen)", "Kuwait University Khaldiya (Canteen)",
+                "Siddque (Canteen)", "Shadadiya KU Engineering (Canteen)", "International University of Kuwait(Canteen)",
+                "Jaber ali Stadium (Canteen)", "Kuwait City - Baitak Tower (Canteen)", "Kuwait City Mazaya tower (Canteen)",
+                "Shaab (Canteen)"
+            ],
+            "Trolley": [
+                "Jahra - Alfa (TR)", "Oyoon - Oula (TR)", "Sulaibiya (TR)", "Saad Al Abdullah - KNPC (TR)",
+                "Shuwaikh - Zain Hospital (TR)", "Zahra - KNPC (TR)", "Shuwaikh - Alfa (TR)", "Ministry of Public Works (TR)",
+                "Abdullah Al Salem (TR)", "Shuwaikh - Zain Head Quarter (TR)", "Abdally KNPC (TR)", "West Shuaiba - Oula (TR)",
+                "Mina Abdullah Alfa - 43 (TR)", "Mubarak Al Kabeer - Oula (TR)", "Ahmedi - Saka - Road 77 (TR)", "Hadiya - Alfa (TR)",
+                "Al Admi Arkan AlKuwait (TR)", "Abu Halifa - Alfa (TR)", "Rahal-Nuwaiseeb (TR)", "Mesayel - Alfa (TR)",
+                "Messila - Oula (TR)", "Sabah Al Salem - Oula 70 (TR)", "Sabah Al Salem Block 3 (TR)", "Sabah Club Qurain Blk 4 (TR)",
+                "Sabah Al Ahmed - KNPC140 (TR)", "Sabah Al Ahmed - KNPC149 (TR)", "Sabah Al Ahmed - KNPC142 (TR)", "Khaldiya - Oula (TR)",
+                "Qurtuba - Oula (TR)", "Hateen - Alfa (TR)", "Kaifan - Kuwait Club (TR)", "Shuhada - Oula (TR)", "Omariya - Oula (TR)",
+                "Abdullah Mubarak (TR)", "Shadadiya - Oula 52 (TR)", "Al Nasser Club (TR)", "Shadadiya - KU College of Admin(Education)   (TR)",
+                "Shadadiya - KU College of Arts (Literacy)   (TR)", "Shadadiya - KU Life Science (TR)", "Bnied Algar - Salam Hospital (TR)",
+                "Salmiya - AL Bidaa (TR)", "Salmiya Alfa (TR)", "Salmiya - Oula Block 10 (TR) - 71", "Salmiya - Oula Block 11 (TR) - 14",
+                "Adan Oula- 1187 (TR)", "Al Arabi Sport Club (TR)", "Bayan - Oula (TR)", "Amiri Hospital (TR)",
+                "Kuwait City - Kipco Tower (TR)", "Shaab - Alfa (TR)", "Mansouriyah - Alfa (TR)", "Daiya - Oula (TR)",
+                "Kuwait City - Baitak Tower (TR)", "Kuwait City - Trolley Ministry Complex (TR)", "Kuwait City - Central Bank of Kuwait (TR)",
+                "Kuwait City - NBK Head Office (TR)", "Jabriya - KU College of Medicine (TR)", "West Mishref - Oula  (TR)",
+                "Marina Crecent (TR)", "Al Arabi Sport Club"
+            ]
         };
 
+        let currentInvoiceItems = [];
+        let html5QrcodeScanner = null;
+        let lastScannedBarcode = null;
+        let lastScanTime = 0;
+
         function onBrandChange() {
+            resetItemDetails();
             document.getElementById('branch').value = "";
             document.getElementById('branchSuggestions').style.display = "none";
         }
@@ -423,10 +525,15 @@
                     const div = document.createElement('div');
                     div.className = 'autocomplete-suggestion';
                     div.textContent = branchName;
-                    div.onclick = () => {
+                    
+                    const selectOption = (e) => {
+                        e.preventDefault();
                         document.getElementById('branch').value = branchName;
                         suggestionsContainer.style.display = 'none';
                     };
+
+                    div.addEventListener('touchstart', selectOption);
+                    div.addEventListener('click', selectOption);
                     suggestionsContainer.appendChild(div);
                 });
                 suggestionsContainer.style.display = 'block';
@@ -449,9 +556,11 @@
                     const div = document.createElement('div');
                     div.className = 'autocomplete-suggestion';
                     div.textContent = itemName;
-                    div.onclick = () => {
+
+                    const selectOption = (e) => {
+                        e.preventDefault();
                         if (!brand) {
-                            alert("Please select a Brand first!");
+                            alert("Please select a Brand first to fetch the correct price!");
                             suggestionsContainer.style.display = 'none';
                             return;
                         }
@@ -459,6 +568,9 @@
                         suggestionsContainer.style.display = 'none';
                         onItemSearchChange(itemName);
                     };
+
+                    div.addEventListener('touchstart', selectOption);
+                    div.addEventListener('click', selectOption);
                     suggestionsContainer.appendChild(div);
                 });
                 suggestionsContainer.style.display = 'block';
@@ -467,122 +579,440 @@
             }
         }
 
-        function onItemSearchChange(name) {
+        function onItemSearchChange(typedName) {
             const brand = document.getElementById('brand').value;
-            for (const [code, details] of Object.entries(productDatabase)) {
-                if (details.name === name) {
-                    document.getElementById('manualBarcode').value = code;
-                    document.getElementById('unitPrice').value = (brand === 'Canteen') ? details.canteenPrice : details.trolleyPrice;
-                    break;
-                }
+            const matchedEntry = Object.entries(productDatabase).find(([barcode, data]) => data.name === typedName);
+            
+            if (matchedEntry) {
+                const itemData = matchedEntry[1];
+                const price = (brand === "Canteen") ? itemData.canteenPrice : itemData.trolleyPrice;
+                document.getElementById('unitPrice').value = price;
+                document.getElementById('manualBarcode').value = matchedEntry[0];
             }
+        }
+
+        function initScanner() {
+            if (!html5QrcodeScanner) {
+                html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 25, qrbox: 250 });
+                html5QrcodeScanner.render(onScanSuccess);
+            }
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            const now = Date.now();
+            if (decodedText === lastScannedBarcode && (now - lastScanTime) < 1200) {
+                return; 
+            }
+            lastScannedBarcode = decodedText;
+            lastScanTime = now;
+
+            playBeepSound();
+            document.getElementById('manualBarcode').value = decodedText;
+            lookupBarcode(decodedText);
+        }
+
+        function lookupBarcode(barcode) {
+            const brand = document.getElementById('brand').value;
+            if (!brand) {
+                alert("Please select a Brand (Canteen or Trolley) first!");
+                return;
+            }
+
+            const cleanBarcode = barcode.trim();
+            const item = productDatabase[cleanBarcode];
+             
+            if (item) {
+                document.getElementById('itemName').value = item.name;
+                const price = (brand === "Canteen") ? item.canteenPrice : item.trolleyPrice;
+                document.getElementById('unitPrice').value = price;
+            }
+        }
+
+        function resetItemDetails() {
+            document.getElementById('itemName').value = "";
+            document.getElementById('unitPrice').value = "";
+            document.getElementById('manualBarcode').value = "";
+            document.getElementById('qty').value = "1";
+            document.getElementById('returnReason').value = "Expired";
+            document.getElementById('prodDate').value = "";
         }
 
         function addReturnItem() {
             const name = document.getElementById('itemName').value;
-            const barcode = document.getElementById('manualBarcode').value;
-            const price = parseFloat(document.getElementById('unitPrice').value || 0);
-            const qty = parseInt(document.getElementById('qty').value || 1);
+            const price = document.getElementById('unitPrice').value;
+            const qty = document.getElementById('qty').value;
             const reason = document.getElementById('returnReason').value;
+            const prodDate = document.getElementById('prodDate').value;
+            const retDate = document.getElementById('returnDateHeader').value;
 
-            if (!name || !price) {
-                alert("Please select a valid item!");
+            if (!name || !price || !qty || !prodDate || !retDate) {
+                alert("Please select/scan a valid item, check price/qty, select Return Date, and provide a production date.");
                 return;
             }
 
-            currentInvoiceItems.push({ name, barcode, price, qty, total: price * qty, reason });
-            renderItemList();
+            const itemData = { 
+                name, 
+                price: parseFloat(price), 
+                qty: parseInt(qty), 
+                reason: reason,
+                prodDate,
+                returnDate: retDate
+            };
             
-            // Clear inputs
-            document.getElementById('itemName').value = "";
-            document.getElementById('manualBarcode').value = "";
-            document.getElementById('unitPrice').value = "";
+            currentInvoiceItems.push(itemData);
+            updateItemsUI();
+            resetItemDetails();
+            lastScannedBarcode = null;
         }
 
-        function renderItemList() {
+        function updateItemsUI() {
             const list = document.getElementById('itemList');
             list.innerHTML = "";
-            let grandTotal = 0;
+            let runningInvoiceTotal = 0;
 
             currentInvoiceItems.forEach((item, index) => {
-                grandTotal += item.total;
-                const li = document.createElement('li');
-                li.className = "list-group-item d-flex justify-content-between align-items-center";
-                li.innerHTML = `
+                const totalItemPrice = item.price * item.qty;
+                runningInvoiceTotal += totalItemPrice;
+
+                list.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">
                     <div>
-                        <strong>${item.name}</strong><br>
-                        <small>Qty: ${item.qty} | Reason: ${item.reason}</small>
+                        <b>${item.name}</b><br>
+                        <small class="text-muted">Ret Date: ${item.returnDate} | Sent/Prod Date: ${item.prodDate} | Qty: ${item.qty}<br>Reason: <b class="text-dark">${item.reason}</b> @ KWD ${item.price.toFixed(3)}</small>
                     </div>
-                    <span>KWD ${item.total.toFixed(3)}</span>
-                `;
-                list.appendChild(li);
+                    <div class="text-end">
+                        <span><b>KWD ${totalItemPrice.toFixed(3)}</b></span><br>
+                        <button class="btn btn-sm btn-link text-danger p-0" style="font-size:0.8rem;" onclick="removeItemFromInvoice(${index})">Remove</button>
+                    </div>
+                </li>`;
             });
 
-            document.getElementById('invoiceTotalDisplay').textContent = grandTotal.toFixed(3);
+            document.getElementById('invoiceTotalDisplay').textContent = runningInvoiceTotal.toFixed(3);
+        }
+
+        function removeItemFromInvoice(index) {
+            currentInvoiceItems.splice(index, 1);
+            updateItemsUI();
         }
 
         function saveFullInvoice() {
-            const date = document.getElementById('returnDateHeader').value;
             const invoiceNo = document.getElementById('invoiceNo').value;
+            const brand = document.getElementById('brand').value;
             const branch = document.getElementById('branch').value;
 
-            if (!invoiceNo || !branch || currentInvoiceItems.length === 0) {
-                alert("Please fill in Invoice No, Branch, and add at least one item!");
+            if (!invoiceNo || !brand || !branch || currentInvoiceItems.length === 0) {
+                alert("Please fill Invoice No, Brand, Branch, and add at least one item.");
                 return;
             }
 
-            const record = { date, invoiceNo, branch, items: currentInvoiceItems, driver: currentUser.name };
-            returnDatabase.push(record);
-            localStorage.setItem('returnsData', JSON.stringify(returnDatabase));
+            const saveBtn = document.getElementById('saveInvoiceBtn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = "Uploading Data to Cloud...";
 
-            alert("Return Invoice saved successfully!");
-            currentInvoiceItems = [];
-            renderItemList();
-            renderDashboard();
-        }
+            let payload = [];
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour12: true });
 
-        function renderDashboard() {
-            let totalReturns = 0;
-            returnDatabase.forEach(inv => {
-                inv.items.forEach(item => totalReturns += item.total);
-            });
-
-            document.getElementById('kpiTotalReturns').textContent = "KWD " + totalReturns.toFixed(3);
-        }
-
-        // EXPORT DATA FUNCTIONS
-        function exportReturnsToExcel() {
-            if (returnDatabase.length === 0) {
-                alert("No return data available to export.");
-                return;
-            }
-
-            let flattenedData = [];
-            returnDatabase.forEach(inv => {
-                inv.items.forEach(item => {
-                    flattenedData.push({
-                        "Return Date": inv.date,
-                        "Invoice No": inv.invoiceNo,
-                        "Branch": inv.branch,
-                        "Driver": inv.driver,
-                        "Item Name": item.name,
-                        "Barcode": item.barcode,
-                        "Qty": item.qty,
-                        "Unit Price (KWD)": item.price,
-                        "Total Amount (KWD)": item.total,
-                        "Reason": item.reason
-                    });
+            currentInvoiceItems.forEach(item => {
+                payload.push({
+                    driverName: currentUser ? currentUser.name : "Unknown",
+                    returnDate: item.returnDate,
+                    productionDate: item.prodDate,
+                    scanTime: timeStr,
+                    invoiceNo: invoiceNo,
+                    brand: brand,
+                    branch: branch,
+                    itemName: item.name,
+                    unitPrice: item.price,
+                    qty: item.qty,
+                    returnReason: item.reason,
+                    totalPrice: (item.price * item.qty).toFixed(3)
                 });
             });
 
-            const worksheet = XLSX.utils.json_to_sheet(flattenedData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Returns");
-            XLSX.writeFile(workbook, `Return_Delivery_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                alert("Return Invoice Saved Successfully!");
+                currentInvoiceItems = [];
+                updateItemsUI();
+                document.getElementById('invoiceNo').value = "";
+                document.getElementById('branch').value = "";
+                saveBtn.disabled = false;
+                saveBtn.textContent = "Finalize & Save Return Invoice";
+            })
+            .catch(error => {
+                console.error('Error saving invoice:', error);
+                alert("Failed to sync invoice. Please check network connection.");
+                saveBtn.disabled = false;
+                saveBtn.textContent = "Finalize & Save Return Invoice";
+            });
         }
 
-        function exportReturnsToCSV() {
-            exportReturnsToExcel(); // SheetJS exports fully formatted CSV/XLSX.
+        // --- EXCEL & CSV SALES DATA PARSER ---
+        function uploadSalesExcel() {
+            const fileInput = document.getElementById('salesExcelInput');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert("Please select an Excel or CSV file first.");
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const rawJson = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    if (rawJson.length < 2) {
+                        alert("Excel file is empty or missing data rows.");
+                        return;
+                    }
+
+                    let parsedSales = [];
+
+                    for (let i = 1; i < rawJson.length; i++) {
+                        const row = rawJson[i];
+                        if (!row || row.length === 0) continue;
+
+                        let rawSentDate = row[0];
+                        let formattedSentDate = "";
+
+                        if (typeof rawSentDate === 'number') {
+                            const dateObj = XLSX.SSF.parse_date_code(rawSentDate);
+                            if (dateObj) {
+                                formattedSentDate = `${dateObj.y}-${String(dateObj.m).padStart(2, '0')}-${String(dateObj.d).padStart(2, '0')}`;
+                            }
+                        } else {
+                            formattedSentDate = formatDateForExcel(rawSentDate);
+                        }
+
+                        let qty = parseInt(row[6]) || 0;
+                        let unitPrice = parseFloat(row[7]) || 0;
+                        let total = parseFloat(row[9]) || (qty * unitPrice);
+
+                        parsedSales.push({
+                            sentDate: formattedSentDate,
+                            sentInvoice: row[1] ? String(row[1]) : "",
+                            brand: row[2] ? String(row[2]) : "",
+                            branchName: row[3] ? String(row[3]) : "",
+                            barcode: row[4] ? String(row[4]) : "",
+                            itemName: row[5] ? String(row[5]) : "",
+                            qty: qty,
+                            unitPrice: unitPrice,
+                            rsp: parseFloat(row[8]) || 0,
+                            total: total
+                        });
+                    }
+
+                    salesDatabase = salesDatabase.concat(parsedSales);
+                    localStorage.setItem('dailySalesData', JSON.stringify(salesDatabase));
+                    alert(`Successfully imported ${parsedSales.length} daily sales records from Excel!`);
+                    fileInput.value = "";
+                    renderDashboard();
+
+                } catch (err) {
+                    console.error("Excel processing error:", err);
+                    alert("Error parsing Excel file. Please ensure it's a valid Excel format.");
+                }
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        // --- DASHBOARD & KPI ANALYTICS ---
+        function renderDashboard() {
+            fetch(GOOGLE_SCRIPT_URL)
+                .then(res => res.json())
+                .then(returnsData => {
+                    processDashboardMetrics(salesDatabase, returnsData || []);
+                })
+                .catch(() => {
+                    processDashboardMetrics(salesDatabase, []);
+                });
+        }
+
+        function processDashboardMetrics(sales, returns) {
+            let totalSalesAmt = sales.reduce((sum, s) => sum + (s.total || 0), 0);
+            let totalReturnsAmt = returns.reduce((sum, r) => sum + (parseFloat(r.totalPrice) || 0), 0);
+            let netSalesAmt = totalSalesAmt - totalReturnsAmt;
+            let returnRate = totalSalesAmt > 0 ? ((totalReturnsAmt / totalSalesAmt) * 100).toFixed(2) : "0.00";
+
+            document.getElementById('kpiTotalSales').textContent = `KWD ${totalSalesAmt.toFixed(3)}`;
+            document.getElementById('kpiTotalReturns').textContent = `KWD ${totalReturnsAmt.toFixed(3)}`;
+            document.getElementById('kpiNetSales').textContent = `KWD ${netSalesAmt.toFixed(3)}`;
+            document.getElementById('kpiReturnRate').textContent = `${returnRate}%`;
+
+            renderChart(sales, returns);
+
+            window.rawSalesData = sales;
+            window.rawReturnsData = returns;
+
+            filterReportTable();
+        }
+
+        function renderChart(sales, returns) {
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            
+            let dates = [...new Set([...sales.map(s => s.sentDate), ...returns.map(r => formatDateForExcel(r.productionDate || r.returnDate))])].filter(Boolean).sort();
+            
+            let salesByDate = dates.map(d => sales.filter(s => s.sentDate === d).reduce((acc, s) => acc + s.total, 0));
+            let returnsByDate = dates.map(d => returns.filter(r => formatDateForExcel(r.productionDate || r.returnDate) === d).reduce((acc, r) => acc + parseFloat(r.totalPrice || 0), 0));
+
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dates.length > 0 ? dates : ['No Data'],
+                    datasets: [
+                        { label: 'Sales (KWD)', data: salesByDate, backgroundColor: '#0d6efd' },
+                        { label: 'Returns (KWD)', data: returnsByDate, backgroundColor: '#dc3545' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        function filterReportTable() {
+            const branchQuery = document.getElementById('reportBranchFilter').value.toLowerCase();
+            const dateQuery = document.getElementById('reportDateFilter').value;
+            const tbody = document.getElementById('reportTableBody');
+
+            let sales = window.rawSalesData || [];
+            let returns = window.rawReturnsData || [];
+
+            let filteredSales = sales.filter(s => {
+                const matchBranch = !branchQuery || (s.branchName && s.branchName.toLowerCase().includes(branchQuery));
+                const matchDate = !dateQuery || s.sentDate === dateQuery;
+                return matchBranch && matchDate;
+            });
+
+            tbody.innerHTML = "";
+
+            if (filteredSales.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-muted">No matching sales/return records found.</td></tr>`;
+                return;
+            }
+
+            filteredSales.forEach(s => {
+                let matchingReturns = returns.filter(r => 
+                    r.branch === s.branchName && 
+                    r.itemName === s.itemName && 
+                    formatDateForExcel(r.productionDate) === s.sentDate
+                );
+
+                let returnedQty = matchingReturns.reduce((acc, r) => acc + (parseInt(r.qty) || 0), 0);
+                let netSoldQty = s.qty - returnedQty;
+                let netAmount = netSoldQty * s.unitPrice;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${s.sentDate}</td>
+                        <td>${s.branchName}</td>
+                        <td>${s.itemName}</td>
+                        <td><span class="badge bg-primary">${s.qty}</span></td>
+                        <td><span class="badge bg-danger">${returnedQty}</span></td>
+                        <td><span class="badge bg-success">${netSoldQty}</span></td>
+                        <td><b>KWD ${netAmount.toFixed(3)}</b></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function resetReportFilter() {
+            document.getElementById('reportBranchFilter').value = "";
+            document.getElementById('reportDateFilter').value = "";
+            filterReportTable();
+        }
+
+        function formatDateForExcel(dateStr) {
+            if (!dateStr) return "";
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Format dates specifically for CSV export (M/D/YYYY for Excel compatibility)
+        function formatDateForCsvExport(dateStr) {
+            if (!dateStr) return "";
+            if (typeof dateStr === 'string' && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
+                return dateStr;
+            }
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+        }
+
+        function exportToExcel() {
+            const exportBtn = document.getElementById('exportBtn');
+            exportBtn.disabled = true;
+            exportBtn.textContent = "Fetching Data for Export...";
+
+            fetch(GOOGLE_SCRIPT_URL)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data || data.length === 0) {
+                        alert("No data available to export.");
+                        exportBtn.disabled = false;
+                        exportBtn.textContent = "Export Return Data to Excel (CSV)";
+                        return;
+                    }
+
+                    const formattedData = data.map(row => {
+                        const newRow = { ...row };
+                        if (newRow.returnDate) newRow.returnDate = formatDateForCsvExport(newRow.returnDate);
+                        if (newRow["Return Date"]) newRow["Return Date"] = formatDateForCsvExport(newRow["Return Date"]);
+                        if (newRow.productionDate) newRow.productionDate = formatDateForCsvExport(newRow.productionDate);
+                        if (newRow["Production Date"]) newRow["Production Date"] = formatDateForCsvExport(newRow["Production Date"]);
+                        return newRow;
+                    });
+
+                    const headers = Object.keys(formattedData[0]);
+                    let csvContent = headers.map(h => `"${h}"`).join(",") + "\n";
+
+                    formattedData.forEach(row => {
+                        const rowValues = headers.map(header => {
+                            let val = row[header] !== undefined && row[header] !== null ? row[header] : "";
+                            val = String(val).replace(/"/g, '""');
+                            return `"${val}"`;
+                        });
+                        csvContent += rowValues.join(",") + "\n";
+                    });
+
+                    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", `Return_Delivery_Report_${new Date().toISOString().split('T')[0]}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    exportBtn.disabled = false;
+                    exportBtn.textContent = "Export Return Data to Excel (CSV)";
+                })
+                .catch(error => {
+                    console.error("Export error:", error);
+                    alert("Failed to fetch export data.");
+                    exportBtn.disabled = false;
+                    exportBtn.textContent = "Export Return Data to Excel (CSV)";
+                });
         }
     </script>
 </body>
