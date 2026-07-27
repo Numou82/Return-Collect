@@ -14,53 +14,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
-        body {
-            background-color: #f4f6f9;
-        }
-        .app-card {
-            max-width: 1100px;
-            margin: 20px auto;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        }
-        #reader {
-            width: 100%;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        .autocomplete-wrapper {
-            position: relative;
-        }
+        body { background-color: #f4f6f9; }
+        .app-card { max-width: 1100px; margin: 20px auto; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        #reader { width: 100%; border-radius: 8px; overflow: hidden; }
+        .autocomplete-wrapper { position: relative; }
         .autocomplete-suggestions {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: #fff;
-            border: 1px solid #ced4da;
-            border-radius: 0 0 6px 6px;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 1050;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            position: absolute; top: 100%; left: 0; right: 0;
+            background: #fff; border: 1px solid #ced4da; border-radius: 0 0 6px 6px;
+            max-height: 200px; overflow-y: auto; z-index: 1050; box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
-        .autocomplete-suggestion {
-            padding: 8px 12px;
-            cursor: pointer;
-            border-bottom: 1px solid #f1f1f1;
-        }
-        .autocomplete-suggestion:hover {
-            background-color: #e9ecef;
-        }
-        .kpi-card {
-            border-radius: 10px;
-            border: none;
-            color: #fff;
-            transition: transform 0.2s ease;
-        }
-        .kpi-card:hover {
-            transform: translateY(-2px);
-        }
+        .autocomplete-suggestion { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f1f1f1; }
+        .autocomplete-suggestion:hover { background-color: #e9ecef; }
+        .kpi-card { border-radius: 10px; border: none; color: #fff; transition: transform 0.2s ease; }
+        .kpi-card:hover { transform: translateY(-2px); }
         .kpi-sales { background: linear-gradient(135deg, #0d6efd, #0a58ca); }
         .kpi-returns { background: linear-gradient(135deg, #dc3545, #b02a37); }
         .kpi-net { background: linear-gradient(135deg, #198754, #146c43); }
@@ -77,16 +43,18 @@
     <!-- LOGIN CONTAINER -->
     <div id="loginSection" class="container mt-5">
         <div class="card app-card p-4" style="max-width: 450px;">
-            <h3 class="text-center mb-4 text-primary fw-bold">Login Portal</h3>
-            <div class="mb-3">
-                <label for="loginId" class="form-label">User ID / Username</label>
-                <input type="text" id="loginId" class="form-control" placeholder="e.g. shahbaz, amir, admin">
-            </div>
-            <div class="mb-3">
-                <label for="loginPassword" class="form-label">Password</label>
-                <input type="password" id="loginPassword" class="form-control" placeholder="Enter password">
-            </div>
-            <button class="btn btn-primary w-100 py-2 fw-bold" onclick="handleLogin()">Login</button>
+            <h3 class="text-center mb-4 text-primary fw-bold">Sales & Return Portal</h3>
+            <form id="loginForm" onsubmit="event.preventDefault(); handleLogin();">
+                <div class="mb-3">
+                    <label for="loginId" class="form-label">User ID / Username</label>
+                    <input type="text" id="loginId" class="form-control" placeholder="e.g. amir, amir khan, shahbaz, admin" required>
+                </div>
+                <div class="mb-3">
+                    <label for="loginPassword" class="form-label">Password</label>
+                    <input type="password" id="loginPassword" class="form-control" placeholder="Enter password" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Login</button>
+            </form>
         </div>
     </div>
 
@@ -128,7 +96,6 @@
                 <div class="tab-pane fade show active" id="entryTab">
                     <h4 class="text-center mb-3 text-secondary">New Return Delivery Note</h4>
 
-                    <!-- INVOICE HEADER DETAILS -->
                     <div class="row g-2 mb-3">
                         <div class="col-6 col-md-3">
                             <label class="form-label small fw-bold">Return Date</label>
@@ -155,7 +122,7 @@
 
                     <hr>
 
-                    <!-- CAMERA SCANNER SECTION -->
+                    <!-- CAMERA SCANNER -->
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Scan Barcode</label>
                         <div id="reader"></div>
@@ -217,7 +184,7 @@
                     <button id="saveInvoiceBtn" class="btn btn-success w-100 py-2 fw-bold" onclick="saveFullInvoice()">Finalize & Save Return Invoice</button>
                 </div>
 
-                <!-- TAB 2: EXECUTIVE DASHBOARD (KPIs, TOP/BAD PERFORMERS) -->
+                <!-- TAB 2: EXECUTIVE DASHBOARD -->
                 <div class="tab-pane fade" id="dashboardTab">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="fw-bold text-dark m-0">Executive Analytics Dashboard</h5>
@@ -256,9 +223,9 @@
                         </div>
                     </div>
 
-                    <!-- ANALYTICS TABLES GRID -->
+                    <!-- ANALYTICS TABLES -->
                     <div class="row g-3 mb-4">
-                        <!-- TOP 10 BEST SELLING ITEMS -->
+                        <!-- TOP 10 ITEMS -->
                         <div class="col-md-6">
                             <div class="card shadow-sm border-0 h-100 p-3">
                                 <h6 class="fw-bold text-success border-bottom pb-2">Top 10 Best Selling Items (Net KWD)</h6>
@@ -278,7 +245,7 @@
                             </div>
                         </div>
 
-                        <!-- BAD ITEM PERFORMANCE (HIGHEST RETURN %) -->
+                        <!-- BAD ITEMS -->
                         <div class="col-md-6">
                             <div class="card shadow-sm border-0 h-100 p-3">
                                 <h6 class="fw-bold text-danger border-bottom pb-2">Top 10 Bad Performing Items (High Return %)</h6>
@@ -299,7 +266,7 @@
                             </div>
                         </div>
 
-                        <!-- TOP 10 BEST SELLING BRANCHES -->
+                        <!-- TOP 10 BRANCHES -->
                         <div class="col-md-6">
                             <div class="card shadow-sm border-0 h-100 p-3">
                                 <h6 class="fw-bold text-success border-bottom pb-2">Top 10 Best Selling Branches (Net KWD)</h6>
@@ -319,7 +286,7 @@
                             </div>
                         </div>
 
-                        <!-- BAD BRANCH PERFORMANCE (HIGHEST RETURN %) -->
+                        <!-- BAD BRANCHES -->
                         <div class="col-md-6">
                             <div class="card shadow-sm border-0 h-100 p-3">
                                 <h6 class="fw-bold text-danger border-bottom pb-2">Top 10 Bad Performing Branches (High Return %)</h6>
@@ -340,20 +307,19 @@
                         </div>
                     </div>
 
-                    <!-- CHART OVERVIEW -->
                     <div class="card p-3 shadow-sm border-0">
                         <h6 class="fw-bold">Overall Performance Trend</h6>
                         <canvas id="salesChart" style="max-height: 220px;"></canvas>
                     </div>
                 </div>
 
-                <!-- TAB 3: BRAND & BRANCH SALES RETURN REPORT -->
+                <!-- TAB 3: REPORT TAB -->
                 <div class="tab-pane fade" id="reportTab">
                     <h5 class="fw-bold text-dark mb-3">Sales Return Report</h5>
                     
                     <div class="row g-2 mb-3 bg-light p-3 rounded border">
                         <div class="col-md-4">
-                            <label class="form-label small fw-bold">Select / Search Brand</label>
+                            <label class="form-label small fw-bold">Select Brand</label>
                             <select id="reportBrandSelect" class="form-select form-select-sm" onchange="renderBrandReport()">
                                 <option value="">-- All Brands --</option>
                                 <option value="Canteen">Canteen</option>
@@ -370,16 +336,11 @@
                         </div>
                     </div>
 
-                    <!-- EXPORT ACTIONS FOR RETURNS & SALES -->
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="text-muted small">Real-time consolidated branch breakdown</span>
                         <div class="btn-group">
-                            <button class="btn btn-sm btn-outline-success" onclick="exportReturnsByDate()">
-                                📥 Export Returns Excel
-                            </button>
-                            <button class="btn btn-sm btn-outline-primary" onclick="exportSalesByDate()">
-                                📥 Export Sales Excel
-                            </button>
+                            <button class="btn btn-sm btn-outline-success" onclick="exportReturnsByDate()">📥 Export Returns Excel</button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="exportSalesByDate()">📥 Export Sales Excel</button>
                         </div>
                     </div>
 
@@ -406,7 +367,7 @@
                 <!-- TAB 4: LATE SOA TRACKER -->
                 <div class="tab-pane fade" id="soaTab">
                     <h5 class="fw-bold text-dark mb-3">Late Statement of Account (SOA) Tracker</h5>
-                    <p class="small text-muted">Branches with sales pending reconciliation beyond expected timeline.</p>
+                    <p class="small text-muted">Branches with sales pending reconciliation beyond 7 days.</p>
                     
                     <div class="row g-3 mb-4">
                         <div class="col-md-4">
@@ -443,7 +404,7 @@
                     </div>
                 </div>
 
-                <!-- TAB 5: DAILY SALES DATA UPLOAD (ADMIN / AMIR ACCESS) -->
+                <!-- TAB 5: DAILY SALES UPLOAD (ADMIN ACCESS) -->
                 <div class="tab-pane fade" id="salesTab">
                     <h5 class="fw-bold text-dark mb-3">Daily Sales Excel Data Management</h5>
                     <p class="small text-muted">Upload daily sales Excel files formatted as: <code>Sent Date | Sent Invoice | Brand | Branch name | Barcode | Item Name | Qty | Unit Price | RSP | Total</code></p>
@@ -470,23 +431,22 @@
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- JAVASCRIPT LOGIC -->
+    <!-- COMPLETE JAVASCRIPT LOGIC -->
     <script>
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXTqzRbiBnhNlpNqFokTKeChSvfmOf3Z33tFGVVVBGxfsVhS0wXFyP2FEM0Ba0KoQ/exec";
 
-        // USER DATABASE INCLUDING AMIR (FULL ADMIN ACCESS)
         const userDatabase = {
             "shahbaz": { name: "Shahbaz", pass: "1234", role: "driver" },
             "abdullah": { name: "Abdullah", pass: "1234", role: "driver" },
             "rashid": { name: "Rashid", pass: "1234", role: "driver" },
             "amir": { name: "Amir Khan", pass: "admin123", role: "admin" },
+            "amir khan": { name: "Amir Khan", pass: "admin123", role: "admin" },
             "admin": { name: "System Admin", pass: "admin123", role: "admin" }
         };
 
         let currentUser = null;
         let chartInstance = null;
 
-        // LOCAL STORAGE STORAGE FOR DAILY SALES & RETURNS DATA
         let salesDatabase = JSON.parse(localStorage.getItem('dailySalesData')) || [];
         let savedReturnsDatabase = JSON.parse(localStorage.getItem('returnsData')) || [];
 
@@ -499,8 +459,10 @@
 
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.autocomplete-wrapper')) {
-                    document.getElementById('branchSuggestions').style.display = 'none';
-                    document.getElementById('itemSuggestions').style.display = 'none';
+                    const bs = document.getElementById('branchSuggestions');
+                    const is = document.getElementById('itemSuggestions');
+                    if(bs) bs.style.display = 'none';
+                    if(is) is.style.display = 'none';
                 }
             });
 
@@ -520,7 +482,6 @@
             document.getElementById('loginSection').classList.add('d-none');
             document.getElementById('appContainer').classList.remove('d-none');
 
-            // Amir and Admin get full access to upload sales tab
             if (user.role === 'admin') {
                 document.getElementById('salesAdminTab').classList.remove('d-none');
             } else {
@@ -554,7 +515,6 @@
             document.getElementById('loginSection').classList.remove('d-none');
         }
 
-        // --- AUDIO GENERATOR ---
         let audioCtx = null;
         function initAudioContext() {
             if (!audioCtx) {
@@ -583,7 +543,6 @@
             }
         }
 
-        // --- PRODUCT DATABASE ---
         const productDatabase = {
             "7517846597753": { "name": "Beef Stroganoff with Penne Pasta", "canteenPrice": 1.625, "trolleyPrice": 1.575 },
             "7517846597241": { "name": "Butter Chicken", "canteenPrice": 1.411, "trolleyPrice": 1.361 },
@@ -688,7 +647,6 @@
                     const div = document.createElement('div');
                     div.className = 'autocomplete-suggestion';
                     div.textContent = branchName;
-                    
                     div.onclick = (e) => {
                         e.preventDefault();
                         document.getElementById('branch').value = branchName;
@@ -720,7 +678,6 @@
                     const div = document.createElement('div');
                     div.className = 'autocomplete-suggestion';
                     div.textContent = `${item.name} (${barcode})`;
-                    
                     div.onclick = (e) => {
                         e.preventDefault();
                         selectItemByBarcode(barcode);
@@ -749,7 +706,7 @@
                 document.getElementById('unitPrice').value = price.toFixed(3);
                 playBeepSound();
             } else {
-                alert("Barcode not recognized in system product database!");
+                alert("Barcode not recognized in product database!");
             }
         }
 
@@ -843,30 +800,21 @@
 
             currentInvoiceItems.forEach(item => {
                 savedReturnsDatabase.push({
-                    returnDate,
-                    invoiceNo,
-                    brand,
-                    branch,
-                    barcode: item.barcode,
-                    itemName: item.itemName,
-                    unitPrice: item.unitPrice,
-                    qty: item.qty,
-                    reason: item.reason,
-                    prodDate: item.prodDate,
-                    itemTotal: item.itemTotal,
-                    driver: currentUser ? currentUser.name : "Driver"
+                    returnDate, invoiceNo, brand, branch,
+                    barcode: item.barcode, itemName: item.itemName,
+                    unitPrice: item.unitPrice, qty: item.qty,
+                    reason: item.reason, prodDate: item.prodDate,
+                    itemTotal: item.itemTotal, driver: currentUser ? currentUser.name : "Driver"
                 });
             });
 
             localStorage.setItem('returnsData', JSON.stringify(savedReturnsDatabase));
 
-            // Sync with Google App Script Web App
             fetch(GOOGLE_SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
+                method: 'POST', mode: 'no-cors',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(savedReturnsDatabase)
-            }).catch(err => console.log("Google Sheets sync skipped or offline:", err));
+            }).catch(err => console.log("Cloud sync status:", err));
 
             alert("Return Delivery Note saved successfully!");
             currentInvoiceItems = [];
@@ -874,7 +822,6 @@
             document.getElementById('invoiceNo').value = "";
         }
 
-        // --- UPLOAD DAILY SALES EXCEL (FOR AMIR & ADMIN) ---
         function uploadSalesExcel() {
             const fileInput = document.getElementById('salesExcelInput');
             const file = fileInput.files[0];
@@ -895,8 +842,7 @@
                     return;
                 }
 
-                // Map Excel Columns based on: Sent Date, Sent Invoice, Brand, Branch name, Barcode, Item Name, Qty, Unit Price, RSP, Total
-                const parsedSales = jsonData.map(row => ({
+                salesDatabase = jsonData.map(row => ({
                     sentDate: cleanDate(row["Sent Date"] || row["Date"] || row["sentDate"]),
                     sentInvoice: row["Sent Invoice"] || row["Invoice"] || "",
                     brand: row["Brand"] || "",
@@ -909,7 +855,6 @@
                     total: parseFloat(row["Total"]) || (parseInt(row["Qty"]) * parseFloat(row["Unit Price"])) || 0
                 }));
 
-                salesDatabase = parsedSales;
                 localStorage.setItem('dailySalesData', JSON.stringify(salesDatabase));
                 alert(`Successfully uploaded ${salesDatabase.length} sales records!`);
                 fileInput.value = "";
@@ -925,7 +870,6 @@
             return String(d).trim().split('T')[0];
         }
 
-        // --- DASHBOARD ANALYTICS & KPIS ---
         function resetDashDate() {
             document.getElementById('dashDateSlicer').value = "";
             renderExecutiveDashboard();
@@ -952,7 +896,6 @@
             document.getElementById('dashKpiNet').textContent = `KWD ${netSalesKWD.toFixed(3)}`;
             document.getElementById('dashKpiRate').textContent = `${returnRate.toFixed(2)}%`;
 
-            // Aggregation by Items
             const itemStats = {};
             filteredSales.forEach(s => {
                 if (!itemStats[s.itemName]) itemStats[s.itemName] = { soldQty: 0, soldKWD: 0, retQty: 0, retKWD: 0 };
@@ -965,7 +908,6 @@
                 itemStats[r.itemName].retKWD += r.itemTotal;
             });
 
-            // Top 10 Best Selling Items
             const sortedTopItems = Object.entries(itemStats)
                 .map(([name, stat]) => ({ name, netKWD: stat.soldKWD - stat.retKWD, soldQty: stat.soldQty }))
                 .sort((a, b) => b.netKWD - a.netKWD)
@@ -977,7 +919,6 @@
                 topItemsTbody.innerHTML += `<tr><td>${i+1}</td><td class="text-start">${item.name}</td><td>${item.soldQty}</td><td>KWD ${item.netKWD.toFixed(3)}</td></tr>`;
             });
 
-            // Top 10 Bad Performing Items (by Return %)
             const sortedBadItems = Object.entries(itemStats)
                 .map(([name, stat]) => {
                     const retPct = stat.soldQty > 0 ? (stat.retQty / stat.soldQty) * 100 : (stat.retQty > 0 ? 100 : 0);
@@ -988,12 +929,11 @@
                 .slice(0, 10);
 
             const badItemsTbody = document.getElementById('badItemsTable');
-            badItemsTbody.innerHTML = sortedBadItems.length ? "" : `<tr><td colspan="5" class="text-muted">No Bad Item Performance Recorded</td></tr>`;
+            badItemsTbody.innerHTML = sortedBadItems.length ? "" : `<tr><td colspan="5" class="text-muted">No Bad Performance</td></tr>`;
             sortedBadItems.forEach((item, i) => {
                 badItemsTbody.innerHTML += `<tr><td>${i+1}</td><td class="text-start">${item.name}</td><td>${item.retQty}</td><td><span class="badge badge-bad">${item.retPct.toFixed(1)}%</span></td><td>KWD ${item.lossKWD.toFixed(3)}</td></tr>`;
             });
 
-            // Aggregation by Branches
             const branchStats = {};
             filteredSales.forEach(s => {
                 if (!branchStats[s.branchName]) branchStats[s.branchName] = { sentKWD: 0, retKWD: 0 };
@@ -1004,7 +944,6 @@
                 branchStats[r.branch].retKWD += r.itemTotal;
             });
 
-            // Top 10 Best Selling Branches
             const sortedTopBranches = Object.entries(branchStats)
                 .map(([branch, stat]) => ({ branch, netKWD: stat.sentKWD - stat.retKWD, sentKWD: stat.sentKWD }))
                 .sort((a, b) => b.netKWD - a.netKWD)
@@ -1016,7 +955,6 @@
                 topBranchesTbody.innerHTML += `<tr><td>${i+1}</td><td class="text-start">${b.branch}</td><td>KWD ${b.sentKWD.toFixed(3)}</td><td>KWD ${b.netKWD.toFixed(3)}</td></tr>`;
             });
 
-            // Top 10 Bad Performing Branches
             const sortedBadBranches = Object.entries(branchStats)
                 .map(([branch, stat]) => {
                     const retPct = stat.sentKWD > 0 ? (stat.retKWD / stat.sentKWD) * 100 : (stat.retKWD > 0 ? 100 : 0);
@@ -1027,7 +965,7 @@
                 .slice(0, 10);
 
             const badBranchesTbody = document.getElementById('badBranchesTable');
-            badBranchesTbody.innerHTML = sortedBadBranches.length ? "" : `<tr><td colspan="4" class="text-muted">No Bad Branch Performance Recorded</td></tr>`;
+            badBranchesTbody.innerHTML = sortedBadBranches.length ? "" : `<tr><td colspan="4" class="text-muted">No Bad Performance</td></tr>`;
             sortedBadBranches.forEach((b, i) => {
                 badBranchesTbody.innerHTML += `<tr><td>${i+1}</td><td class="text-start">${b.branch}</td><td>KWD ${b.retKWD.toFixed(3)}</td><td><span class="badge badge-bad">${b.retPct.toFixed(1)}%</span></td></tr>`;
             });
@@ -1049,14 +987,10 @@
                         backgroundColor: ['#0d6efd', '#dc3545', '#198754']
                     }]
                 },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } }
-                }
+                options: { responsive: true, plugins: { legend: { display: false } } }
             });
         }
 
-        // --- SALES RETURN REPORT (BRAND & BRANCH BASED) ---
         function renderBrandReport() {
             const brandFilter = document.getElementById('reportBrandSelect').value;
             const branchSearch = document.getElementById('reportBranchSearch').value.toLowerCase();
@@ -1125,7 +1059,6 @@
             });
         }
 
-        // --- LATE STATEMENT OF ACCOUNT (SOA) TRACKER ---
         function renderLateSOAReport() {
             const today = new Date();
             const pendingInvoices = {};
@@ -1155,7 +1088,7 @@
                 const diffTime = Math.abs(today - sentD);
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-                if (diffDays > 7) { // Over 7 days considered Late SOA
+                if (diffDays > 7) {
                     count++;
                     totalOverdue += inv.totalSent;
 
@@ -1181,7 +1114,6 @@
             document.getElementById('soaOverdueAmount').textContent = `KWD ${totalOverdue.toFixed(3)}`;
         }
 
-        // --- EXPORT TO EXCEL LOGIC ---
         function exportReturnsByDate() {
             if (savedReturnsDatabase.length === 0) {
                 alert("No return records to export!");
