@@ -3,1224 +3,1359 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fresh Food Returns & Sales System</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- SheetJS for Excel Import/Export -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-    <!-- HTML5-QRCode Scanner -->
+    <title>Return Delivery Note & Sales Analytics App</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- HTML5-QRCode Library -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    
+    <!-- Chart.js for Dashboard Visuals -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS for Excel (.xlsx, .xls) Reading & Writing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <style>
-        .active-tab {
-            background-color: #1e293b;
-            color: #ffffff;
-            border-left: 4px solid #3b82f6;
+        body { background-color: #f4f6f9; }
+        .app-card { max-width: 1100px; margin: 20px auto; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        #reader { width: 100%; border-radius: 8px; overflow: hidden; }
+        .autocomplete-wrapper { position: relative; }
+        .autocomplete-suggestions {
+            position: absolute; top: 100%; left: 0; right: 0;
+            background: #fff; border: 1px solid #ced4da; border-radius: 0 0 6px 6px;
+            max-height: 200px; overflow-y: auto; z-index: 1050; box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
+        .autocomplete-suggestion { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f1f1f1; }
+        .autocomplete-suggestion:hover { background-color: #e9ecef; }
+        .kpi-card { border-radius: 10px; border: none; color: #fff; transition: transform 0.2s ease; }
+        .kpi-card:hover { transform: translateY(-2px); }
+        .kpi-sales { background: linear-gradient(135deg, #0d6efd, #0a58ca); }
+        .kpi-returns { background: linear-gradient(135deg, #dc3545, #b02a37); }
+        .kpi-net { background: linear-gradient(135deg, #198754, #146c43); }
+        .kpi-rate { background: linear-gradient(135deg, #ffc107, #d39e00); color: #212529 !important; }
+        .kpi-soa { background: linear-gradient(135deg, #6f42c1, #593196); }
+        .kpi-driver { background: linear-gradient(135deg, #20c997, #14a085); }
+        .nav-tabs .nav-link { font-weight: 600; color: #495057; }
+        .nav-tabs .nav-link.active { color: #0d6efd; border-bottom: 3px solid #0d6efd; }
+        .badge-bad { background-color: #dc3545; color: #fff; }
+        .badge-good { background-color: #198754; color: #fff; }
+        .sync-badge { position: fixed; bottom: 20px; right: 20px; font-size: 12px; z-index: 1000; }
     </style>
 </head>
-<body class="bg-slate-100 font-sans text-slate-800 antialiased">
+<body>
 
-    <div class="flex h-screen overflow-hidden">
-        
-        <!-- SIDEBAR NAVIGATION -->
-        <aside id="sidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between transition-all duration-300 z-30 shrink-0">
-            <div>
-                <!-- App Header -->
-                <div class="h-16 flex items-center px-6 bg-slate-950 font-bold text-white text-lg tracking-wide border-b border-slate-800">
-                    <i data-lucide="truck" class="w-6 h-6 mr-3 text-blue-500"></i>
-                    <span>FreshDistro Ops</span>
+    <!-- LOGIN CONTAINER -->
+    <div id="loginSection" class="container mt-5">
+        <div class="card app-card p-4" style="max-width: 450px;">
+            <h3 class="text-center mb-4 text-primary fw-bold">Sales & Return Portal</h3>
+            <form id="loginForm" onsubmit="event.preventDefault(); handleLogin();">
+                <div class="mb-3">
+                    <label for="loginId" class="form-label">User ID / Username</label>
+                    <input type="text" id="loginId" class="form-control" placeholder="e.g. amir, amir khan, shahbaz, admin" required>
                 </div>
+                <div class="mb-3">
+                    <label for="loginPassword" class="form-label">Password</label>
+                    <input type="password" id="loginPassword" class="form-control" placeholder="Enter password" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Login</button>
+            </form>
+        </div>
+    </div>
 
-                <!-- Navigation Links -->
-                <nav class="mt-6 space-y-1 px-3">
-                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium hover:bg-slate-800 transition active-tab">
-                        <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i> Dashboard
-                    </button>
-                    <button onclick="switchTab('sales')" id="nav-sales" class="nav-item w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium hover:bg-slate-800 transition">
-                        <i data-lucide="upload-cloud" class="w-5 h-5 mr-3"></i> Sales Upload
-                    </button>
-                    <button onclick="switchTab('driver')" id="nav-driver" class="nav-item w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium hover:bg-slate-800 transition">
-                        <i data-lucide="qr-code" class="w-5 h-5 mr-3"></i> Driver Return Entry
-                    </button>
-                    <button onclick="switchTab('accounts')" id="nav-accounts" class="nav-item w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium hover:bg-slate-800 transition">
-                        <i data-lucide="file-spreadsheet" class="w-5 h-5 mr-3"></i> Accounts Ledger
-                    </button>
-                    <button onclick="switchTab('reports')" id="nav-reports" class="nav-item w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium hover:bg-slate-800 transition">
-                        <i data-lucide="bar-chart-3" class="w-5 h-5 mr-3"></i> Performance Reports
-                    </button>
-                </nav>
-            </div>
-
-            <!-- Database Quick Controls -->
-            <div class="p-4 border-t border-slate-800 text-xs text-slate-500 space-y-2">
-                <p class="font-semibold text-slate-400">System Information</p>
-                <p>Status: <span class="text-emerald-400 font-medium">Ready</span></p>
-                <button onclick="resetToSampleData()" class="w-full mt-2 bg-slate-800 hover:bg-slate-700 text-slate-300 py-1.5 px-3 rounded text-xs transition border border-slate-700">
-                    Reset Demo Master Data
-                </button>
-            </div>
-        </aside>
-
-        <!-- MAIN CONTENT AREA -->
-        <main class="flex-1 flex flex-col overflow-hidden">
+    <!-- MAIN APP CONTAINER -->
+    <div id="appContainer" class="container d-none my-4">
+        <div class="card app-card p-4">
             
-            <!-- TOP BAR -->
-            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0">
-                <div class="flex items-center space-x-4">
-                    <button id="toggleSidebar" class="text-slate-500 hover:text-slate-700 focus:outline-none">
-                        <i data-lucide="menu" class="w-6 h-6"></i>
+            <!-- HEADER LOGOUT -->
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <div>
+                    <small class="text-muted">Logged in as:</small><br>
+                    <strong id="displayDriverName" class="text-primary fs-5">---</strong>
+                    <span id="userRoleBadge" class="badge bg-info ms-2"></span>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-info" id="syncStatusBtn" onclick="manualSync()" title="Sync data across devices">
+                        🔄 Sync
                     </button>
-                    <h1 id="pageTitle" class="text-xl font-bold text-slate-800">Dashboard & KPIs</h1>
+                    <button class="btn btn-outline-danger btn-sm" onclick="logout()">Logout</button>
                 </div>
-                <div class="flex items-center space-x-3">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                        3-Day Shelf Life System
-                    </span>
-                    <span class="text-sm font-medium text-slate-600" id="currentDateDisplay"></span>
-                </div>
-            </header>
+            </div>
 
-            <!-- DYNAMIC TAB PANELS -->
-            <div class="flex-1 overflow-y-auto p-6 bg-slate-50">
+            <!-- NAVIGATION TABS -->
+            <ul class="nav nav-tabs mb-4" id="appTabs" role="tablist">
+                <!-- DRIVER TABS -->
+                <li class="nav-item" id="driverEntryTab" style="display:none;">
+                    <button class="nav-link active" id="entry-tab" data-bs-toggle="tab" data-bs-target="#entryTab" type="button">Return Delivery Entry</button>
+                </li>
+                <li class="nav-item" id="driverDashTab" style="display:none;">
+                    <button class="nav-link" id="driver-dashboard-tab" data-bs-toggle="tab" data-bs-target="#driverDashboardTab" type="button" onclick="renderDriverDashboard()">My Dashboard</button>
+                </li>
 
-                <!-- 1. DASHBOARD TAB -->
-                <section id="tab-dashboard" class="tab-content space-y-6">
-                    <!-- KPI Cards Row -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Net Return Amount</p>
-                                    <h3 class="text-2xl font-black text-rose-600 mt-1" id="kpiNetReturn">KWD 0.000</h3>
-                                </div>
-                                <div class="p-2.5 bg-rose-50 text-rose-600 rounded-lg">
-                                    <i data-lucide="trending-down" class="w-6 h-6"></i>
-                                </div>
-                            </div>
-                            <p class="text-xs text-slate-500 mt-3" id="kpiReturnPercentText">0.0% of total delivered sales</p>
+                <!-- ADMIN TABS -->
+                <li class="nav-item" id="adminEntryTab" style="display:none;">
+                    <button class="nav-link active" id="admin-entry-tab" data-bs-toggle="tab" data-bs-target="#entryTab" type="button">Return Delivery Entry</button>
+                </li>
+                <li class="nav-item" id="adminDashboardTab" style="display:none;">
+                    <button class="nav-link" id="admin-dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboardTab" type="button" onclick="renderExecutiveDashboard()">Executive Dashboard</button>
+                </li>
+                <li class="nav-item" id="adminReportTab" style="display:none;">
+                    <button class="nav-link" id="admin-report-tab" data-bs-toggle="tab" data-bs-target="#reportTab" type="button" onclick="renderBrandReport()">Sales Return Report</button>
+                </li>
+                <li class="nav-item" id="adminSoaTab" style="display:none;">
+                    <button class="nav-link" id="admin-soa-tab" data-bs-toggle="tab" data-bs-target="#soaTab" type="button" onclick="renderLateSOAReport()">Late SOA Tracker</button>
+                </li>
+                <li class="nav-item" id="salesAdminTab" style="display:none;">
+                    <button class="nav-link" id="sales-tab" data-bs-toggle="tab" data-bs-target="#salesTab" type="button">Daily Sales Upload</button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="appTabContent">
+                
+                <!-- TAB 1: RETURN ENTRY FORM -->
+                <div class="tab-pane fade show active" id="entryTab">
+                    <h4 class="text-center mb-3 text-secondary">New Return Delivery Note</h4>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6 col-md-3">
+                            <label class="form-label small fw-bold">Return Date</label>
+                            <input type="date" id="returnDateHeader" class="form-control form-control-sm">
                         </div>
-
-                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Delivered Volume</p>
-                                    <h3 class="text-2xl font-black text-slate-800 mt-1" id="kpiTotalSent">KWD 0.000</h3>
-                                </div>
-                                <div class="p-2.5 bg-blue-50 text-blue-600 rounded-lg">
-                                    <i data-lucide="truck" class="w-6 h-6"></i>
-                                </div>
-                            </div>
-                            <p class="text-xs text-slate-500 mt-3" id="kpiTotalQtyText">0 total items dispatched</p>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label small fw-bold">Invoice No</label>
+                            <input type="text" id="invoiceNo" class="form-control form-control-sm" placeholder="e.g. INV-1001">
                         </div>
-
-                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Worst Performing Branch</p>
-                                    <h3 class="text-lg font-bold text-slate-800 mt-1 truncate max-w-[180px]" id="kpiWorstBranch">N/A</h3>
-                                </div>
-                                <div class="p-2.5 bg-amber-50 text-amber-600 rounded-lg">
-                                    <i data-lucide="store" class="w-6 h-6"></i>
-                                </div>
-                            </div>
-                            <p class="text-xs text-rose-600 font-medium mt-3" id="kpiWorstBranchSub">0% Return Rate</p>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label small fw-bold">Brand</label>
+                            <select id="brand" class="form-select form-select-sm" onchange="onBrandChange()">
+                                <option value="">-- Select --</option>
+                                <option value="Canteen">Canteen</option>
+                                <option value="Trolley">Trolley</option>
+                            </select>
                         </div>
-
-                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Top Expired SKU</p>
-                                    <h3 class="text-lg font-bold text-slate-800 mt-1 truncate max-w-[180px]" id="kpiWorstItem">N/A</h3>
-                                </div>
-                                <div class="p-2.5 bg-orange-50 text-orange-600 rounded-lg">
-                                    <i data-lucide="package-x" class="w-6 h-6"></i>
-                                </div>
-                            </div>
-                            <p class="text-xs text-orange-600 font-medium mt-3" id="kpiWorstItemSub">0 units expired</p>
+                        <div class="col-6 col-md-3 autocomplete-wrapper">
+                            <label class="form-label small fw-bold">Branch</label>
+                            <input type="text" id="branch" class="form-control form-control-sm" placeholder="Search branch..." oninput="filterBranchOptions()">
+                            <div id="branchSuggestions" class="autocomplete-suggestions" style="display:none;"></div>
                         </div>
                     </div>
 
-                    <!-- Top 3 Bad Lists -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Bad Branches -->
-                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-                            <div class="flex items-center justify-between mb-4 border-b pb-3">
-                                <h3 class="font-bold text-slate-800 flex items-center">
-                                    <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-500 mr-2"></i>
-                                    Top 3 "Bad Branches" (Highest Loss)
-                                </h3>
-                                <span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">Ranked by Return KWD</span>
+                    <hr>
+
+                    <!-- CAMERA SCANNER -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Scan Barcode</label>
+                        <div id="reader"></div>
+                    </div>
+
+                    <!-- ITEM INPUT FORM -->
+                    <div class="bg-light p-3 rounded mb-3 border">
+                        <div class="mb-2 autocomplete-wrapper">
+                            <label class="form-label small fw-bold">Item Name / Search</label>
+                            <input type="text" id="itemName" class="form-control form-control-sm" placeholder="Type or scan item..." oninput="filterItemOptions()">
+                            <div id="itemSuggestions" class="autocomplete-suggestions" style="display:none;"></div>
+                        </div>
+
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label small">Barcode</label>
+                                <input type="text" id="manualBarcode" class="form-control form-control-sm" placeholder="Scanned Barcode" readonly>
                             </div>
-                            <div id="badBranchesList" class="space-y-3">
-                                <p class="text-sm text-slate-400 italic">Upload sales and entry returns to generate KPIs.</p>
+                            <div class="col-6">
+                                <label class="form-label small">Unit Price (KWD)</label>
+                                <input type="number" id="unitPrice" class="form-control form-control-sm" step="0.001" readonly>
                             </div>
                         </div>
 
-                        <!-- Bad Items -->
-                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-                            <div class="flex items-center justify-between mb-4 border-b pb-3">
-                                <h3 class="font-bold text-slate-800 flex items-center">
-                                    <i data-lucide="package-search" class="w-5 h-5 text-amber-500 mr-2"></i>
-                                    Top 3 "Bad Items" (Highest Waste)
-                                </h3>
-                                <span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">Ranked by Expired Qty</span>
+                        <div class="row g-2 mb-2">
+                            <div class="col-4">
+                                <label class="form-label small fw-bold">Qty</label>
+                                <input type="number" id="qty" class="form-control form-control-sm" value="1" min="1">
                             </div>
-                            <div id="badItemsList" class="space-y-3">
-                                <p class="text-sm text-slate-400 italic">Upload sales and entry returns to generate KPIs.</p>
+                            <div class="col-8">
+                                <label class="form-label small fw-bold">Return Reason</label>
+                                <select id="returnReason" class="form-select form-select-sm">
+                                    <option value="Expired">Expired</option>
+                                    <option value="Damaged">Damaged</option>
+                                    <option value="Quality Issue">Quality Issue</option>
+                                    <option value="Overstock">Overstock</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Production Date (Sent Date Alignment)</label>
+                            <input type="date" id="prodDate" class="form-control form-control-sm">
+                        </div>
+
+                        <button class="btn btn-secondary btn-sm w-100" onclick="addReturnItem()">Add Item to Return Note</button>
+                    </div>
+
+                    <!-- INVOICE ITEMS LIST -->
+                    <div class="mb-3">
+                        <h6 class="fw-bold">Current Invoice Items</h6>
+                        <ul id="itemList" class="list-group mb-2"></ul>
+                        <div class="d-flex justify-content-between align-items-center fw-bold fs-5 px-2">
+                            <span>Total Amount:</span>
+                            <span>KWD <span id="invoiceTotalDisplay">0.000</span></span>
+                        </div>
+                    </div>
+
+                    <button id="saveInvoiceBtn" class="btn btn-success w-100 py-2 fw-bold" onclick="saveFullInvoice()">Finalize & Save Return Invoice</button>
+                </div>
+
+                <!-- TAB 2: DRIVER DASHBOARD -->
+                <div class="tab-pane fade" id="driverDashboardTab">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold text-dark m-0">My Performance Dashboard</h5>
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="small fw-bold text-nowrap">Filter Date:</label>
+                            <input type="date" id="driverDateSlicer" class="form-control form-control-sm" onchange="renderDriverDashboard()">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="resetDriverDate()">All</button>
+                        </div>
+                    </div>
+                    
+                    <!-- DRIVER KPI CARDS -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-6 col-md-3">
+                            <div class="card kpi-card kpi-driver p-3">
+                                <small class="text-white-50">My Deliveries</small>
+                                <h4 class="fw-bold mb-0" id="driverKpiDeliveries">0</h4>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card kpi-card kpi-returns p-3">
+                                <small class="text-white-50">My Returns</small>
+                                <h4 class="fw-bold mb-0" id="driverKpiReturns">KWD 0.000</h4>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card kpi-card kpi-net p-3">
+                                <small class="text-white-50">Net Performance</small>
+                                <h4 class="fw-bold mb-0" id="driverKpiNet">KWD 0.000</h4>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card kpi-card kpi-rate p-3">
+                                <small class="text-muted">Return Rate (%)</small>
+                                <h4 class="fw-bold mb-0" id="driverKpiRate">0.00%</h4>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Performance Overview Tables -->
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-                        <h3 class="font-bold text-slate-800 mb-4">Brand Performance Overview</h3>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm text-left">
-                                <thead class="bg-slate-50 text-slate-600 text-xs uppercase font-semibold border-b">
+                    <!-- DRIVER RETURNS BREAKDOWN TABLE -->
+                    <div class="card shadow-sm border-0 p-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold border-bottom pb-2 flex-grow-1">My Recent Returns</h6>
+                            <button class="btn btn-sm btn-success" onclick="exportDriverReturns()">📥 Export My Returns</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle small text-center">
+                                <thead class="table-light">
                                     <tr>
-                                        <th class="py-3 px-4">Brand</th>
-                                        <th class="py-3 px-4 text-right">Sent Qty</th>
-                                        <th class="py-3 px-4 text-right">Return Qty</th>
-                                        <th class="py-3 px-4 text-right">Return %</th>
-                                        <th class="py-3 px-4 text-right">Sent Amount</th>
-                                        <th class="py-3 px-4 text-right">Return Amount</th>
-                                        <th class="py-3 px-4 text-right">Net Sales Amount</th>
+                                        <th>Return Date</th>
+                                        <th>Invoice</th>
+                                        <th>Branch</th>
+                                        <th>Item</th>
+                                        <th>Qty</th>
+                                        <th>Reason</th>
+                                        <th>Amount (KWD)</th>
                                     </tr>
                                 </thead>
-                                <tbody id="dashboardBrandTable" class="divide-y divide-slate-100">
-                                    <tr><td colspan="7" class="py-4 text-center text-slate-400">No data available</td></tr>
-                                </tbody>
+                                <tbody id="driverReturnsTable"></tbody>
                             </table>
                         </div>
                     </div>
-                </section>
+                </div>
 
-                <!-- 2. SALES UPLOAD TAB -->
-                <section id="tab-sales" class="tab-content hidden space-y-6">
-                    <!-- Excel Import Box -->
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                        <div class="flex flex-col md:flex-row items-center justify-between gap-4 border-b pb-5 mb-5">
-                            <div>
-                                <h2 class="text-lg font-bold text-slate-800">Upload Sales Manifest</h2>
-                                <p class="text-sm text-slate-500">Select an Excel file containing sent invoices for Canteens and Trolley branches.</p>
-                            </div>
-                            <div class="flex gap-2">
-                                <button onclick="downloadSalesTemplate()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center transition">
-                                    <i data-lucide="download" class="w-4 h-4 mr-2"></i> Download Template
-                                </button>
-                                <label class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-semibold cursor-pointer flex items-center shadow-sm transition">
-                                    <i data-lucide="file-up" class="w-4 h-4 mr-2"></i> Choose Excel File
-                                    <input type="file" id="salesFileInput" accept=".xlsx, .xls" class="hidden" onchange="handleSalesUpload(event)">
-                                </label>
+                <!-- TAB 3: EXECUTIVE DASHBOARD -->
+                <div class="tab-pane fade" id="dashboardTab">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold text-dark m-0">Executive Analytics Dashboard</h5>
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="small fw-bold text-nowrap">Filter Date:</label>
+                            <input type="date" id="dashDateSlicer" class="form-control form-control-sm" onchange="renderExecutiveDashboard()">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="resetDashDate()">All</button>
+                        </div>
+                    </div>
+                    
+                    <!-- KPI CARDS -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-6 col-md-3">
+                            <div class="card kpi-card kpi-sales p-3">
+                                <small class="text-white-50">Total Sent Sales</small>
+                                <h4 class="fw-bold mb-0" id="dashKpiSales">KWD 0.000</h4>
                             </div>
                         </div>
-
-                        <!-- Required Schema Info -->
-                        <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 text-xs text-slate-600 flex flex-wrap gap-2">
-                            <span class="font-bold text-slate-700">Required Header Schema:</span>
-                            <span class="bg-white px-2 py-0.5 rounded border">Sent Date</span>
-                            <span class="bg-white px-2 py-0.5 rounded border">Invoice No</span>
-                            <span class="bg-white px-2 py-0.5 rounded border">Brand</span>
-                            <span class="bg-white px-2 py-0.5 rounded border">Branch Name</span>
-                            <span class="bg-white px-2 py-0.5 rounded border">Barcode</span>
-                            <span class="bg-white px-2 py-0.5 rounded border">Item Name</span>
-                            <span class="bg-white px-2 py-0.5 rounded border">Qty</span>
-                            <span class="bg-white px-2 py-0.5 rounded border">Unit Price</span>
-                            <span class="bg-white px-2 py-0.5 rounded border">RSP Price</span>
+                        <div class="col-6 col-md-3">
+                            <div class="card kpi-card kpi-returns p-3">
+                                <small class="text-white-50">Total Returns</small>
+                                <h4 class="fw-bold mb-0" id="dashKpiReturns">KWD 0.000</h4>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card kpi-card kpi-net p-3">
+                                <small class="text-white-50">Net Delivered Sales</small>
+                                <h4 class="fw-bold mb-0" id="dashKpiNet">KWD 0.000</h4>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card kpi-card kpi-rate p-3">
+                                <small class="text-muted">Return Rate (%)</small>
+                                <h4 class="fw-bold mb-0" id="dashKpiRate">0.00%</h4>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Uploaded Sales Data Table -->
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
-                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <h3 class="font-bold text-slate-800 text-base">Sales Records</h3>
-                            
-                            <!-- Filter Controls -->
-                            <div class="flex flex-wrap items-center gap-3">
-                                <select id="salesFilterBrand" onchange="renderSalesTable()" class="border rounded-lg px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-blue-500">
-                                    <option value="">All Brands</option>
-                                    <option value="Canteen">Canteen</option>
-                                    <option value="Trolley">Trolley</option>
-                                </select>
-                                <input type="date" id="salesFilterDate" onchange="renderSalesTable()" class="border rounded-lg px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-blue-500">
-                                <button onclick="clearSalesFilters()" class="text-xs text-slate-500 hover:text-slate-800 underline">Reset Filters</button>
-                                <button onclick="exportSalesExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center transition ml-2">
-                                    <i data-lucide="file-spreadsheet" class="w-4 h-4 mr-1.5"></i> Export Excel
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm text-left">
-                                <thead class="bg-slate-50 text-slate-600 text-xs uppercase font-semibold border-b">
-                                    <tr>
-                                        <th class="py-3 px-4">Sent Date</th>
-                                        <th class="py-3 px-4">Invoice #</th>
-                                        <th class="py-3 px-4">Brand</th>
-                                        <th class="py-3 px-4">Branch Name</th>
-                                        <th class="py-3 px-4">Barcode</th>
-                                        <th class="py-3 px-4">Item Name</th>
-                                        <th class="py-3 px-4 text-right">Qty</th>
-                                        <th class="py-3 px-4 text-right">Unit Price</th>
-                                        <th class="py-3 px-4 text-right">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="salesTableBody" class="divide-y divide-slate-100">
-                                    <!-- Populated dynamically -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- 3. DRIVER RETURN ENTRY TAB -->
-                <section id="tab-driver" class="tab-content hidden space-y-6">
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        
-                        <!-- LEFT PANEL: Entry Form -->
-                        <div class="lg:col-span-1 bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
-                            <div class="border-b pb-3">
-                                <h2 class="font-bold text-lg text-slate-800 flex items-center">
-                                    <i data-lucide="plus-circle" class="w-5 h-5 mr-2 text-blue-600"></i>
-                                    New Return Voucher
-                                </h2>
-                                <p class="text-xs text-slate-500">Scan or search expired fresh products.</p>
-                            </div>
-
-                            <!-- Header Invoice Details -->
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Return Date</label>
-                                    <input type="date" id="driverReturnDate" class="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Return Invoice #</label>
-                                    <input type="number" id="driverInvoiceNo" class="w-full border rounded-lg p-2 text-sm bg-slate-50 font-bold text-slate-700" readonly>
-                                </div>
-                            </div>
-
-                            <!-- Brand & Branch Selection -->
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">Brand Selector</label>
-                                <select id="driverBrand" onchange="onDriverBrandChange()" class="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500">
-                                    <option value="">Select Brand...</option>
-                                    <option value="Canteen">Canteen</option>
-                                    <option value="Trolley">Trolley</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">Branch Name (Search/Select)</label>
-                                <input type="text" id="driverBranchInput" list="branchOptions" placeholder="Type or select branch..." class="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500">
-                                <datalist id="branchOptions"></datalist>
-                            </div>
-
-                            <hr class="border-slate-100">
-
-                            <!-- Scanner & Search Controls -->
-                            <div class="space-y-3">
-                                <div class="flex items-center justify-between">
-                                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Item Selection</label>
-                                    <button onclick="toggleCameraScanner()" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1 rounded text-xs flex items-center transition">
-                                        <i data-lucide="camera" class="w-3.5 h-3.5 mr-1 text-emerald-400"></i> Toggle Camera Scanner
-                                    </button>
-                                </div>
-
-                                <!-- Camera Scanner Container -->
-                                <div id="scannerContainer" class="hidden bg-slate-900 rounded-lg p-2 border border-slate-700">
-                                    <div id="reader" class="w-full"></div>
-                                </div>
-
-                                <!-- Manual Search Bar -->
-                                <div>
-                                    <label class="block text-xs text-slate-500 mb-1">Search Item by Name or Barcode</label>
-                                    <input type="text" id="driverItemSearch" list="itemMasterOptions" oninput="onItemSearchInput()" placeholder="Type Item Name or Scan..." class="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500">
-                                    <datalist id="itemMasterOptions"></datalist>
-                                </div>
-                            </div>
-
-                            <!-- Auto-populated Line Details -->
-                            <div class="bg-slate-50 p-3 rounded-lg space-y-3 border border-slate-200">
-                                <div>
-                                    <span class="text-xs text-slate-400 block">Selected SKU Barcode</span>
-                                    <span id="displayBarcode" class="font-mono text-sm font-semibold text-slate-700">---</span>
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Quantity</label>
-                                        <input type="number" id="driverQty" min="1" value="1" oninput="calculateDriverTotal()" class="w-full border rounded-lg p-2 text-sm font-bold text-blue-600 focus:ring-2 focus:ring-blue-500">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Unit Price (KWD)</label>
-                                        <input type="number" id="driverUnitPrice" step="0.001" readonly class="w-full border rounded-lg p-2 text-sm bg-slate-100 font-semibold">
-                                    </div>
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Reason</label>
-                                        <select id="driverReason" class="w-full border rounded-lg p-2 text-sm">
-                                            <option value="Expired">Expired</option>
-                                            <option value="Damaged">Damaged</option>
-                                            <option value="Qty Issue">Qty Issue</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Original Sent Date</label>
-                                        <input type="date" id="driverSentDate" class="w-full border rounded-lg p-2 text-xs">
-                                    </div>
-                                </div>
-
-                                <div class="flex justify-between items-center pt-2 border-t border-slate-200">
-                                    <span class="text-xs font-semibold text-slate-500">Subtotal Amount:</span>
-                                    <span id="driverSubtotal" class="font-black text-slate-800 text-base">0.000 KWD</span>
-                                </div>
-                            </div>
-
-                            <button onclick="addReturnLineItem()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg text-sm shadow transition flex items-center justify-center">
-                                <i data-lucide="plus" class="w-4 h-4 mr-2"></i> Add Item to Return Voucher
-                            </button>
-                        </div>
-
-                        <!-- RIGHT PANEL: Current Voucher Basket -->
-                        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between">
-                            <div class="space-y-4">
-                                <div class="flex justify-between items-center border-b pb-3">
-                                    <div>
-                                        <h3 class="font-bold text-slate-800 text-base">Return Invoice Draft List</h3>
-                                        <p class="text-xs text-slate-500" id="driverDraftHeader">Branch: Unselected</p>
-                                    </div>
-                                    <span class="text-xs bg-blue-50 text-blue-700 font-bold px-3 py-1 rounded-full" id="driverItemCountTag">0 Items</span>
-                                </div>
-
-                                <div class="overflow-x-auto max-h-[400px]">
-                                    <table class="w-full text-sm text-left">
-                                        <thead class="bg-slate-50 text-slate-600 text-xs uppercase font-semibold border-b">
+                    <!-- ANALYTICS TABLES -->
+                    <div class="row g-3 mb-4">
+                        <!-- TOP 10 ITEMS -->
+                        <div class="col-md-6">
+                            <div class="card shadow-sm border-0 h-100 p-3">
+                                <h6 class="fw-bold text-success border-bottom pb-2">Top 10 Best Selling Items (Net KWD)</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover align-middle small text-center">
+                                        <thead class="table-light">
                                             <tr>
-                                                <th class="py-2.5 px-3">Item Name</th>
-                                                <th class="py-2.5 px-3">Reason</th>
-                                                <th class="py-2.5 px-3">Sent Date</th>
-                                                <th class="py-2.5 px-3 text-right">Qty</th>
-                                                <th class="py-2.5 px-3 text-right">Price</th>
-                                                <th class="py-2.5 px-3 text-right">Total</th>
-                                                <th class="py-2.5 px-3 text-center">Action</th>
+                                                <th>#</th>
+                                                <th class="text-start">Item Name</th>
+                                                <th>Sold Qty</th>
+                                                <th>Net (KWD)</th>
                                             </tr>
                                         </thead>
-                                        <tbody id="driverBasketBody" class="divide-y divide-slate-100">
-                                            <tr><td colspan="7" class="py-8 text-center text-slate-400">Voucher list is empty. Add items from the left panel.</td></tr>
-                                        </tbody>
+                                        <tbody id="topItemsTable"></tbody>
                                     </table>
                                 </div>
                             </div>
+                        </div>
 
-                            <!-- Footer Voucher Actions -->
-                            <div class="pt-4 border-t border-slate-200 mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                                <div>
-                                    <span class="text-xs text-slate-500 block">Grand Total Return Value</span>
-                                    <span id="driverGrandTotal" class="text-2xl font-black text-rose-600">KWD 0.000</span>
+                        <!-- BAD ITEMS -->
+                        <div class="col-md-6">
+                            <div class="card shadow-sm border-0 h-100 p-3">
+                                <h6 class="fw-bold text-danger border-bottom pb-2">Top 10 Bad Performing Items (High Return %)</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover align-middle small text-center">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>#</th>
+                                                <th class="text-start">Item Name</th>
+                                                <th>Ret Qty</th>
+                                                <th>Ret %</th>
+                                                <th>Loss (KWD)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="badItemsTable"></tbody>
+                                    </table>
                                 </div>
-                                <div class="flex gap-3 w-full sm:w-auto">
-                                    <button onclick="clearDriverDraft()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium transition">
-                                        Discard
-                                    </button>
-                                    <button onclick="saveReturnVoucher()" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-lg text-sm shadow transition flex items-center justify-center">
-                                        <i data-lucide="check-circle" class="w-4 h-4 mr-2"></i> Save & Submit Voucher
-                                    </button>
+                            </div>
+                        </div>
+
+                        <!-- TOP 10 BRANCHES -->
+                        <div class="col-md-6">
+                            <div class="card shadow-sm border-0 h-100 p-3">
+                                <h6 class="fw-bold text-success border-bottom pb-2">Top 10 Best Selling Branches (Net KWD)</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover align-middle small text-center">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>#</th>
+                                                <th class="text-start">Branch Name</th>
+                                                <th>Sent (KWD)</th>
+                                                <th>Net (KWD)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="topBranchesTable"></tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
 
-                    </div>
-                </section>
-
-                <!-- 4. ACCOUNTS & RECONCILIATION TAB -->
-                <section id="tab-accounts" class="tab-content hidden space-y-6">
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
-                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
-                            <div>
-                                <h2 class="text-lg font-bold text-slate-800">Return Invoices Central Ledger</h2>
-                                <p class="text-xs text-slate-500">Comprehensive log of all submitted return invoices by drivers.</p>
+                        <!-- BAD BRANCHES -->
+                        <div class="col-md-6">
+                            <div class="card shadow-sm border-0 h-100 p-3">
+                                <h6 class="fw-bold text-danger border-bottom pb-2">Top 10 Bad Performing Branches (High Return %)</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover align-middle small text-center">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>#</th>
+                                                <th class="text-start">Branch Name</th>
+                                                <th>Ret Amount</th>
+                                                <th>Ret %</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="badBranchesTable"></tbody>
+                                    </table>
+                                </div>
                             </div>
-                            <div class="flex flex-wrap items-center gap-3">
-                                <select id="acctFilterBrand" onchange="renderAccountsLedger()" class="border rounded-lg px-3 py-1.5 text-sm bg-white">
-                                    <option value="">All Brands</option>
-                                    <option value="Canteen">Canteen</option>
-                                    <option value="Trolley">Trolley</option>
-                                </select>
-                                <input type="text" id="acctFilterBranch" oninput="renderAccountsLedger()" placeholder="Filter Branch..." class="border rounded-lg px-3 py-1.5 text-sm bg-white">
-                                <button onclick="exportReturnsExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center transition">
-                                    <i data-lucide="file-spreadsheet" class="w-4 h-4 mr-1.5"></i> Export Returns Excel
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm text-left">
-                                <thead class="bg-slate-50 text-slate-600 text-xs uppercase font-semibold border-b">
-                                    <tr>
-                                        <th class="py-3 px-4">Return Date</th>
-                                        <th class="py-3 px-4">Invoice #</th>
-                                        <th class="py-3 px-4">Brand</th>
-                                        <th class="py-3 px-4">Branch Name</th>
-                                        <th class="py-3 px-4">Item Name</th>
-                                        <th class="py-3 px-4">Reason</th>
-                                        <th class="py-3 px-4 text-right">Qty</th>
-                                        <th class="py-3 px-4 text-right">Unit Price</th>
-                                        <th class="py-3 px-4 text-right">Total Return</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="accountsTableBody" class="divide-y divide-slate-100">
-                                    <!-- Populated dynamically -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- 5. PERFORMANCE REPORTS TAB -->
-                <section id="tab-reports" class="tab-content hidden space-y-6">
-                    <!-- Branch Performance Matrix -->
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
-                        <div class="flex justify-between items-center border-b pb-3">
-                            <div>
-                                <h3 class="font-bold text-slate-800 text-base">Branch Check & Performance Matrix</h3>
-                                <p class="text-xs text-slate-500">Net Sales calculations: Sold Qty = Sent Qty - Return Qty</p>
-                            </div>
-                            <button onclick="exportBranchReportExcel()" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition">
-                                <i data-lucide="download" class="w-3.5 h-3.5 mr-1.5"></i> Export Branch Report
-                            </button>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm text-left">
-                                <thead class="bg-slate-50 text-slate-600 text-xs uppercase font-semibold border-b">
-                                    <tr>
-                                        <th class="py-3 px-4">Branch Name</th>
-                                        <th class="py-3 px-4 text-right">Sent Qty</th>
-                                        <th class="py-3 px-4 text-right">Return Qty</th>
-                                        <th class="py-3 px-4 text-right">Sold Qty</th>
-                                        <th class="py-3 px-4 text-right">Return %</th>
-                                        <th class="py-3 px-4 text-right">Sent Amount</th>
-                                        <th class="py-3 px-4 text-right">Return Amount</th>
-                                        <th class="py-3 px-4 text-right">Sold Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="reportBranchBody" class="divide-y divide-slate-100">
-                                    <!-- Dynamic -->
-                                </tbody>
-                            </table>
                         </div>
                     </div>
 
-                    <!-- Item Performance Matrix -->
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
-                        <div class="flex justify-between items-center border-b pb-3">
-                            <div>
-                                <h3 class="font-bold text-slate-800 text-base">Item SKU Performance Matrix</h3>
-                                <p class="text-xs text-slate-500">Monetary and volumetric waste evaluation per SKU</p>
-                            </div>
-                            <button onclick="exportItemReportExcel()" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition">
-                                <i data-lucide="download" class="w-3.5 h-3.5 mr-1.5"></i> Export SKU Report
-                            </button>
+                    <div class="card p-3 shadow-sm border-0">
+                        <h6 class="fw-bold">Overall Performance Trend</h6>
+                        <canvas id="salesChart" style="max-height: 220px;"></canvas>
+                    </div>
+                </div>
+
+                <!-- TAB 4: REPORT TAB -->
+                <div class="tab-pane fade" id="reportTab">
+                    <h5 class="fw-bold text-dark mb-3">Sales Return Report</h5>
+                    
+                    <div class="row g-2 mb-3 bg-light p-3 rounded border">
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">Select Brand</label>
+                            <select id="reportBrandSelect" class="form-select form-select-sm" onchange="renderBrandReport()">
+                                <option value="">-- All Brands --</option>
+                                <option value="Canteen">Canteen</option>
+                                <option value="Trolley">Trolley</option>
+                            </select>
                         </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm text-left">
-                                <thead class="bg-slate-50 text-slate-600 text-xs uppercase font-semibold border-b">
-                                    <tr>
-                                        <th class="py-3 px-4">Item SKU Name</th>
-                                        <th class="py-3 px-4 text-right">Sent Qty</th>
-                                        <th class="py-3 px-4 text-right">Return Qty</th>
-                                        <th class="py-3 px-4 text-right">Sold Qty</th>
-                                        <th class="py-3 px-4 text-right">Return %</th>
-                                        <th class="py-3 px-4 text-right">Sent Amount</th>
-                                        <th class="py-3 px-4 text-right">Return Amount</th>
-                                        <th class="py-3 px-4 text-right">Sold Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="reportItemBody" class="divide-y divide-slate-100">
-                                    <!-- Dynamic -->
-                                </tbody>
-                            </table>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">Search Branch</label>
+                            <input type="text" id="reportBranchSearch" class="form-control form-control-sm" placeholder="Type branch name..." oninput="renderBrandReport()">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">Filter Sent/Prod Date</label>
+                            <input type="date" id="reportDateSelect" class="form-control form-control-sm" onchange="renderBrandReport()">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">Export Format</label>
+                            <select id="exportFormat" class="form-select form-select-sm">
+                                <option value="excel">Excel</option>
+                                <option value="finance">Finance Form</option>
+                            </select>
                         </div>
                     </div>
-                </section>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted small">Real-time consolidated branch breakdown</span>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-success" onclick="exportReturnsByDate()">📥 Export Returns Excel</button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="exportSalesByDate()">📥 Export Sales Excel</button>
+                            <button class="btn btn-sm btn-outline-info" onclick="exportFinanceForm()">📋 Export Finance Form</button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped align-middle text-center small">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th class="text-start">Branch Name</th>
+                                    <th>Sent Qty</th>
+                                    <th>Return Qty</th>
+                                    <th>Return %</th>
+                                    <th>Sent Amount (KWD)</th>
+                                    <th>Return Amount (KWD)</th>
+                                    <th>Sold Amount (KWD)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="brandReportTableBody">
+                                <tr><td colspan="7" class="text-muted">No sales or return data available.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 5: LATE SOA TRACKER -->
+                <div class="tab-pane fade" id="soaTab">
+                    <h5 class="fw-bold text-dark mb-3">Late Statement of Account (SOA) Tracker</h5>
+                    <p class="small text-muted">Branches with sales pending reconciliation beyond 7 days.</p>
+                    
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="card kpi-card kpi-soa p-3">
+                                <small class="text-white-50">Pending SOA Invoices</small>
+                                <h4 class="fw-bold mb-0" id="soaPendingCount">0</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card kpi-card kpi-returns p-3">
+                                <small class="text-white-50">Overdue Amount (KWD)</small>
+                                <h4 class="fw-bold mb-0" id="soaOverdueAmount">KWD 0.000</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle text-center small">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Sent Date</th>
+                                    <th>Invoice No</th>
+                                    <th>Brand</th>
+                                    <th class="text-start">Branch Name</th>
+                                    <th>Total Sent (KWD)</th>
+                                    <th>Days Unsettled</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="soaTableBody">
+                                <tr><td colspan="7" class="text-muted">No pending or late SOA records found.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 6: DAILY SALES UPLOAD (ADMIN ACCESS) -->
+                <div class="tab-pane fade" id="salesTab">
+                    <h5 class="fw-bold text-dark mb-3">Daily Sales Excel Data Management</h5>
+                    <p class="small text-muted">Upload daily sales Excel files formatted as: <code>Sent Date | Sent Invoice | Brand | Branch name | Barcode | Item Name | Qty | Unit Price | RSP | [...]</code></p>
+                    
+                    <div class="card p-4 bg-light text-center mb-3">
+                        <input type="file" id="salesExcelInput" accept=".xlsx, .xls, .csv" class="form-control mb-3">
+                        <button class="btn btn-primary fw-bold" onclick="uploadSalesExcel()">Upload Sales Data File</button>
+                    </div>
+
+                    <div id="adminExportSection" class="pt-3 border-top">
+                        <h6 class="fw-bold">Data Export & Backup Tools</h6>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-success flex-fill" onclick="exportSalesByDate()">Export Sales File (Excel)</button>
+                            <button class="btn btn-outline-danger flex-fill" onclick="exportReturnsByDate()">Export Returns File (Excel)</button>
+                        </div>
+                    </div>
+                </div>
 
             </div>
-        </main>
+
+        </div>
     </div>
 
-    <!-- JAVASCRIPT APPLICATION LOGIC -->
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- COMPLETE JAVASCRIPT LOGIC -->
     <script>
-        // MASTER DATABASES (38 SKUs with Canteen & Trolley Pricing)
-        const itemDatabase = {
-            "7517846597753": { name: "Beef Stroganoff with Penne Pasta", canteenPrice: 1.625, trolleyPrice: 1.575 },
-            "7517846597241": { name: "Butter Chicken", canteenPrice: 1.411, trolleyPrice: 1.361 },
-            "7517846597142": { name: "Chicken Caesar Salad", canteenPrice: 1.268, trolleyPrice: 1.268 },
-            "7517846598408": { name: "Chicken Club Sandwich", canteenPrice: 0.975, trolleyPrice: 0.975 },
-            "7517846598392": { name: "Chicken Shish Taouk Wrap", canteenPrice: 0.780, trolleyPrice: 0.780 },
-            "7517846598231": { name: "Chipotle Egg Burger", canteenPrice: 0.813, trolleyPrice: 0.813 },
-            "7517846597180": { name: "Classic Beef Burger", canteenPrice: 1.294, trolleyPrice: 1.294 },
-            "7517846598330": { name: "Creamy Chicken Caesar Wrap", canteenPrice: 0.748, trolleyPrice: 0.748 },
-            "7517846598286": { name: "Creamy Shrimp Caesar Salad", canteenPrice: 1.347, trolleyPrice: 1.347 },
-            "7517846598163": { name: "Egg & Turkey Croissant", canteenPrice: 0.813, trolleyPrice: 0.813 },
-            "7517846598361": { name: "Egg Wrap", canteenPrice: 0.585, trolleyPrice: 0.585 },
-            "7517846598378": { name: "Falafel Wrap", canteenPrice: 0.423, trolleyPrice: 0.423 },
-            "7517846598309": { name: "Feta Spinach Strawberry Salad", canteenPrice: 0.618, trolleyPrice: 0.618 },
-            "7517846597333": { name: "Grilled Halloumi Sandwich", canteenPrice: 0.975, trolleyPrice: 0.975 },
-            "5904223118410": { name: "Halloumi Sandwich", canteenPrice: 0.618, trolleyPrice: 0.618 },
-            "7517846598347": { name: "Halloumi Wrap", canteenPrice: 0.618, trolleyPrice: 0.618 },
-            "7517846598385": { name: "Labna Potato Wrap", canteenPrice: 0.455, trolleyPrice: 0.455 },
-            "5904223218417": { name: "Labna Sandwich", canteenPrice: 0.553, trolleyPrice: 0.553 },
-            "7517846598293": { name: "Maple Kale Salad", canteenPrice: 0.975, trolleyPrice: 0.975 },
-            "5904293218454": { name: "Margherita Pizza", canteenPrice: 0.585, trolleyPrice: 0.585 },
-            "7517846598255": { name: "Marinara Chicken Sandwich", canteenPrice: 0.975, trolleyPrice: 0.975 },
-            "7517846597906": { name: "Mexican Nacho Salad OI", canteenPrice: 1.008, trolleyPrice: 0.958 },
-            "7517846598156": { name: "Mix Cheese Croissant", canteenPrice: 0.748, trolleyPrice: 0.748 },
-            "5904223219452": { name: "Mixed Cheese Pizza", canteenPrice: 0.644, trolleyPrice: 0.644 },
-            "7517846598187": { name: "Mozzarella Melt", canteenPrice: 0.650, trolleyPrice: 0.650 },
-            "7517846598316": { name: "Numou French Salad", canteenPrice: 0.715, trolleyPrice: 0.715 },
-            "7517846597975": { name: "Numou Mini Cookies (5 pieces)", canteenPrice: 0.650, trolleyPrice: 0.650 },
-            "7517846598422": { name: "Qaimar & Asal", canteenPrice: 0.390, trolleyPrice: 0.390 },
-            "7517846598279": { name: "Santa Fe Chicken Salad", canteenPrice: 1.625, trolleyPrice: 1.510 },
-            "5904223118441": { name: "Spinach Feta Pizza", canteenPrice: 0.585, trolleyPrice: 0.585 },
-            "7517846597678": { name: "Tapenade Halloumi Sandwich", canteenPrice: 1.040, trolleyPrice: 1.040 },
-            "7517846598262": { name: "Thai Chicken Salad", canteenPrice: 1.625, trolleyPrice: 1.380 },
-            "7517846598323": { name: "Thai Salad Pot", canteenPrice: 0.780, trolleyPrice: 0.780 },
-            "5904223218400": { name: "Turkey Cheddar Croissant", canteenPrice: 0.644, trolleyPrice: 0.644 },
-            "7517846598415": { name: "Turkey Club Sandwich", canteenPrice: 1.138, trolleyPrice: 1.138 },
-            "7517846598149": { name: "Turkey Croissant", canteenPrice: 0.813, trolleyPrice: 0.813 },
-            "7517846598224": { name: "Turkey Melt", canteenPrice: 0.975, trolleyPrice: 0.975 },
-            "5901234184090": { name: "Turkey Sandwich", canteenPrice: 0.618, trolleyPrice: 0.618 },
-            "7517846598439": { name: "Turkey with Apricot Jam", canteenPrice: 0.975, trolleyPrice: 0.975 },
-            "7517846597630": { name: "Turkey with Creamy Chutney Wrap", canteenPrice: 1.203, trolleyPrice: 1.202 },
-            "7517846598354": { name: "Turkey Wrap", canteenPrice: 0.748, trolleyPrice: 0.748 }
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXTqzRbiBnhNlpNqFokTKeChSvfmOf3Z33tFGVVVBGxfsVhS0wXFyP2FEM0Ba0KoQ/exec";
+        const SYNC_KEY = 'returnCollectSyncTimestamp';
+
+        const userDatabase = {
+            "shahbaz": { name: "Shahbaz", pass: "1234", role: "driver" },
+            "abdullah": { name: "Abdullah", pass: "1234", role: "driver" },
+            "rashid": { name: "Rashid", pass: "1234", role: "driver" },
+            "amir": { name: "Amir Khan", pass: "admin123", role: "admin" },
+            "amir khan": { name: "Amir Khan", pass: "admin123", role: "admin" },
+            "admin": { name: "System Admin", pass: "admin123", role: "admin" }
+        };
+
+        let currentUser = null;
+        let chartInstance = null;
+
+        let salesDatabase = JSON.parse(localStorage.getItem('dailySalesData')) || [];
+        let savedReturnsDatabase = JSON.parse(localStorage.getItem('returnsData')) || [];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            document.body.addEventListener('click', () => { initAudioContext(); }, { once: false });
+            
+            const today = new Date().toISOString().split('T')[0];
+            const returnDateInput = document.getElementById('returnDateHeader');
+            if (returnDateInput) returnDateInput.value = today;
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.autocomplete-wrapper')) {
+                    const bs = document.getElementById('branchSuggestions');
+                    const is = document.getElementById('itemSuggestions');
+                    if(bs) bs.style.display = 'none';
+                    if(is) is.style.display = 'none';
+                }
+            });
+
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    applyUserSession(currentUser);
+                } catch (e) {
+                    localStorage.removeItem('currentUser');
+                }
+            }
+
+            // Auto-sync every 60 seconds
+            setInterval(() => {
+                if (currentUser) {
+                    syncDataAcrossDevices();
+                }
+            }, 60000);
+        });
+
+        function syncDataAcrossDevices() {
+            const lastSync = localStorage.getItem(SYNC_KEY) || 0;
+            const now = Date.now();
+            localStorage.setItem(SYNC_KEY, now);
+            
+            // Sync returns data
+            const storedReturns = JSON.parse(localStorage.getItem('returnsData')) || [];
+            savedReturnsDatabase = storedReturns;
+            
+            // Sync sales data
+            const storedSales = JSON.parse(localStorage.getItem('dailySalesData')) || [];
+            salesDatabase = storedSales;
+        }
+
+        function manualSync() {
+            syncDataAcrossDevices();
+            alert("✅ Data synced successfully!");
+        }
+
+        function applyUserSession(user) {
+            document.getElementById('displayDriverName').textContent = user.name;
+            document.getElementById('userRoleBadge').textContent = user.role === 'admin' ? 'Admin' : 'Driver';
+            document.getElementById('loginSection').classList.add('d-none');
+            document.getElementById('appContainer').classList.remove('d-none');
+
+            // Hide all tabs first
+            document.getElementById('driverEntryTab').style.display = 'none';
+            document.getElementById('driverDashTab').style.display = 'none';
+            document.getElementById('adminEntryTab').style.display = 'none';
+            document.getElementById('adminDashboardTab').style.display = 'none';
+            document.getElementById('adminReportTab').style.display = 'none';
+            document.getElementById('adminSoaTab').style.display = 'none';
+            document.getElementById('salesAdminTab').style.display = 'none';
+
+            // Show tabs based on role
+            if (user.role === 'admin') {
+                // Admin sees all tabs
+                document.getElementById('adminEntryTab').style.display = 'block';
+                document.getElementById('adminDashboardTab').style.display = 'block';
+                document.getElementById('adminReportTab').style.display = 'block';
+                document.getElementById('adminSoaTab').style.display = 'block';
+                document.getElementById('salesAdminTab').style.display = 'block';
+
+                // Set active tab to Entry
+                const firstTab = document.getElementById('admin-entry-tab');
+                if (firstTab) firstTab.click();
+            } else {
+                // Driver sees only Entry and My Dashboard
+                document.getElementById('driverEntryTab').style.display = 'block';
+                document.getElementById('driverDashTab').style.display = 'block';
+
+                // Set active tab to Entry
+                const firstTab = document.getElementById('entry-tab');
+                if (firstTab) firstTab.click();
+            }
+
+            initScanner();
+            syncDataAcrossDevices();
+        }
+
+        function handleLogin() {
+            const idInput = document.getElementById('loginId').value.trim().toLowerCase();
+            const passInput = document.getElementById('loginPassword').value.trim();
+            const user = userDatabase[idInput];
+
+            if (user && user.pass === passInput) {
+                initAudioContext();
+                currentUser = user;
+                localStorage.setItem('currentUser', JSON.stringify(user));
+                applyUserSession(user);
+            } else {
+                alert("Invalid User ID or Password!");
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            document.getElementById('loginId').value = "";
+            document.getElementById('loginPassword').value = "";
+            document.getElementById('appContainer').classList.add('d-none');
+            document.getElementById('loginSection').classList.remove('d-none');
+        }
+
+        let audioCtx = null;
+        function initAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playBeepSound() {
+            try {
+                initAudioContext();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(1200, audioCtx.currentTime); 
+                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.12);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.12);
+            } catch(e) {
+                console.log("Audio feedback error:", e);
+            }
+        }
+
+        const productDatabase = {
+            "7517846597753": { "name": "Beef Stroganoff with Penne Pasta", "canteenPrice": 1.625, "trolleyPrice": 1.575 },
+            "7517846597241": { "name": "Butter Chicken", "canteenPrice": 1.411, "trolleyPrice": 1.361 },
+            "7517846597142": { "name": "Chicken Caesar Salad", "canteenPrice": 1.268, "trolleyPrice": 1.268 },
+            "7517846598408": { "name": "Chicken Club Sandwich", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+            "7517846598392": { "name": "Chicken Shish Taouk Wrap", "canteenPrice": 0.78, "trolleyPrice": 0.78 },
+            "7517846598231": { "name": "Chipotle Egg Burger", "canteenPrice": 0.813, "trolleyPrice": 0.813 },
+            "7517846597180": { "name": "Classic Beef Burger", "canteenPrice": 1.294, "trolleyPrice": 1.294 },
+            "7517846598330": { "name": "Creamy Chicken Caesar Wrap", "canteenPrice": 0.748, "trolleyPrice": 0.748 },
+            "7517846598286": { "name": "Creamy Shrimp Caesar Salad", "canteenPrice": 1.347, "trolleyPrice": 1.347 },
+            "7517846598163": { "name": "Egg & Turkey Croissant", "canteenPrice": 0.813, "trolleyPrice": 0.813 },
+            "7517846598361": { "name": "Egg Wrap", "canteenPrice": 0.585, "trolleyPrice": 0.585 },
+            "7517846598378": { "name": "Falafel Wrap", "canteenPrice": 0.423, "trolleyPrice": 0.423 },
+            "7517846598309": { "name": "Feta Spinach Strawberry Salad", "canteenPrice": 0.618, "trolleyPrice": 0.618 },
+            "7517846597333": { "name": "Grilled Halloumi Sandwich", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+            "5904223118410": { "name": "Halloumi Sandwich", "canteenPrice": 0.618, "trolleyPrice": 0.618 },
+            "7517846598347": { "name": "Halloumi Wrap", "canteenPrice": 0.618, "trolleyPrice": 0.618 },
+            "7517846598385": { "name": "Labna Potato Wrap", "canteenPrice": 0.455, "trolleyPrice": 0.455 },
+            "5904223218417": { "name": "Labna Sandwich", "canteenPrice": 0.553, "trolleyPrice": 0.553 },
+            "7517846598293": { "name": "Maple Kale Salad", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+            "5904293218454": { "name": "Margherita Pizza", "canteenPrice": 0.585, "trolleyPrice": 0.585 },
+            "7517846598255": { "name": "Marinara Chicken Sandwich", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+            "7517846597906": { "name": "Mexican Nacho Salad OI", "canteenPrice": 1.008, "trolleyPrice": 0.958 },
+            "7517846598156": { "name": "Mix Cheese Croissant", "canteenPrice": 0.748, "trolleyPrice": 0.748 },
+            "5904223219452": { "name": "Mixed Cheese Pizza", "canteenPrice": 0.644, "trolleyPrice": 0.644 },
+            "7517846598187": { "name": "Mozzarella Melt", "canteenPrice": 0.65, "trolleyPrice": 0.65 },
+            "7517846598316": { "name": "Numou French Salad", "canteenPrice": 0.715, "trolleyPrice": 0.715 },
+            "7517846597975": { "name": "Numou Mini Cookies (5 pieces)", "canteenPrice": 0.65, "trolleyPrice": 0.65 },
+            "7517846598422": { "name": "Qaimar & Asal", "canteenPrice": 0.39, "trolleyPrice": 0.39 },
+            "7517846598279": { "name": "Santa Fe Chicken Salad", "canteenPrice": 1.625, "trolleyPrice": 1.51 },
+            "5904223118441": { "name": "Spinach Feta Pizza", "canteenPrice": 0.585, "trolleyPrice": 0.585 },
+            "7517846597678": { "name": "Tapenade Halloumi Sandwich", "canteenPrice": 1.04, "trolleyPrice": 1.04 },
+            "7517846598262": { "name": "Thai Chicken Salad", "canteenPrice": 1.625, "trolleyPrice": 1.38 },
+            "7517846598323": { "name": "Thai Salad Pot", "canteenPrice": 0.78, "trolleyPrice": 0.78 },
+            "5904223218400": { "name": "Turkey Cheddar Croissant", "canteenPrice": 0.644, "trolleyPrice": 0.644 },
+            "7517846598415": { "name": "Turkey Club Sandwich", "canteenPrice": 1.138, "trolleyPrice": 1.138 },
+            "7517846598149": { "name": "Turkey Croissant", "canteenPrice": 0.813, "trolleyPrice": 0.813 },
+            "7517846598224": { "name": "Turkey Melt", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+            "5901234184090": { "name": "Turkey Sandwich", "canteenPrice": 0.618, "trolleyPrice": 0.618 },
+            "7517846598439": { "name": "Turkey with Apricot Jam", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+            "7517846597630": { "name": "Turkey with Creamy Chutney Wrap", "canteenPrice": 1.203, "trolleyPrice": 1.202 },
+            "7517846598354": { "name": "Turkey Wrap", "canteenPrice": 0.748, "trolleyPrice": 0.748 }
         };
 
         const branchDatabase = {
             "Canteen": [
-                "Waha (Canteen)", "Zain Headquater (Canteen)", "Ministry of Electricity and Water Subhan (Canteen)",
-                "Public Authority of Housing Welfare shuwaikh (Canteen)", "Rihab (Canteen)", "Shuaiba Equate (Canteen)",
-                "Ahmadi Equate (Canteen)", "Awqaf Shuwaikh (Canteen)", "Kuwait University Khaldiya (Canteen)",
-                "Siddque (Canteen)", "Shadadiya KU Engineering (Canteen)", "International University of Kuwait(Canteen)",
-                "Jaber ali Stadium (Canteen)", "Kuwait City - Baitak Tower (Canteen)", "Kuwait City Mazaya tower (Canteen)", "Shaab (Canteen)"
+                "Waha (Canteen)",
+                "Zain Headquater (Canteen)",
+                "Ministry of Electricity and Water Subhan (Canteen)",
+                "Public Authority of Housing Welfare shuwaikh (Canteen)",
+                "Rihab (Canteen)",
+                "Shuaiba Equate (Canteen)",
+                "Ahmadi Equate (Canteen)",
+                "Awqaf Shuwaikh (Canteen)",
+                "Kuwait University Khaldiya (Canteen)",
+                "Siddque (Canteen)",
+                "Shadadiya KU Engineering (Canteen)",
+                "International University of Kuwait(Canteen)",
+                "Jaber ali Stadium (Canteen)",
+                "Kuwait City - Baitak Tower (Canteen)",
+                "Kuwait City Mazaya tower (Canteen)",
+                "Shaab (Canteen)"
             ],
             "Trolley": [
-                "Jahra - Alfa (TR)", "Oyoon - Oula (TR)", "Sulaibiya (TR)", "Saad Al Abdullah - KNPC (TR)",
-                "Shuwaikh - Zain Hospital (TR)", "Zahra - KNPC (TR)", "Shuwaikh - Alfa (TR)", "Ministry of Public Works (TR)",
-                "Abdullah Al Salem (TR)", "Shuwaikh - Zain Head Quarter (TR)", "Abdally KNPC (TR)", "West Shuaiba - Oula (TR)",
-                "Mina Abdullah Alfa - 43 (TR)", "Mubarak Al Kabeer - Oula (TR)", "Ahmedi - Saka - Road 77 (TR)",
-                "Hadiya - Alfa (TR)", "Al Admi Arkan AlKuwait (TR)", "Abu Halifa - Alfa (TR)", "Rahal-Nuwaiseeb (TR)",
-                "Mesayel - Alfa (TR)", "Messila - Oula (TR)", "Sabah Al Salem - Oula 70 (TR)", "Sabah Al Salem Block 3 (TR)",
-                "Sabah Club Qurain Blk 4 (TR)", "Sabah Al Ahmed - KNPC140 (TR)", "Sabah Al Ahmed - KNPC149 (TR)",
-                "Sabah Al Ahmed - KNPC142 (TR)", "Khaldiya - Oula (TR)", "Qurtuba - Oula (TR)", "Hateen - Alfa (TR)",
-                "Kaifan - Kuwait Club (TR)", "Shuhada - Oula (TR)", "Omariya - Oula (TR)", "Abdullah Mubarak (TR)",
-                "Shadadiya - Oula 52 (TR)", "Al Nasser Club (TR)", "Shadadiya - KU College of Admin(Education) (TR)",
-                "Shadadiya - KU College of Arts (Literacy) (TR)", "Shadadiya - KU Life Science (TR)", "Bnied Algar - Salam Hospital (TR)",
-                "Salmiya - AL Bidaa (TR)", "Salmiya Alfa (TR)", "Salmiya - Oula Block 10 (TR) - 71", "Salmiya - Oula Block 11 (TR) - 14",
-                "Adan Oula- 1187 (TR)", "Al Arabi Sport Club (TR)", "Bayan - Oula (TR)", "Amiri Hospital (TR)",
-                "Kuwait City - Kipco Tower (TR)", "Shaab - Alfa (TR)", "Mansouriyah - Alfa (TR)", "Daiya - Oula (TR)",
-                "Kuwait City - Baitak Tower (TR)", "Kuwait City - Trolley Ministry Complex (TR)", "Kuwait City - Central Bank of Kuwait (TR)",
-                "Kuwait City - NBK Head Office (TR)", "Jabriya - KU College of Medicine (TR)", "West Mishref - Oula (TR)", "Marina Crecent (TR)"
+                "Jahra - Alfa (TR)",
+                "Oyoon - Oula (TR)",
+                "Sulaibiya (TR)",
+                "Saad Al Abdullah - KNPC (TR)",
+                "Shuwaikh - Zain Hospital (TR)",
+                "Zahra - KNPC (TR)",
+                "Shuwaikh - Alfa (TR)",
+                "Ministry of Public Works (TR)",
+                "Abdullah Al Salem (TR)",
+                "Shuwaikh - Zain Head Quarter (TR)",
+                "Abdally KNPC (TR)",
+                "West Shuaiba - Oula (TR)",
+                "Mina Abdullah Alfa - 43 (TR)",
+                "Mubarak Al Kabeer - Oula (TR)",
+                "Ahmedi - Saka - Road 77 (TR)",
+                "Hadiya - Alfa (TR)",
+                "Al Admi Arkan AlKuwait (TR)",
+                "Abu Halifa - Alfa (TR)",
+                "Rahal-Nuwaiseeb (TR)",
+                "Mesayel - Alfa (TR)",
+                "Messila - Oula (TR)",
+                "Sabah Al Salem - Oula 70 (TR)",
+                "Sabah Al Salem Block 3 (TR)",
+                "Sabah Club Qurain Blk 4 (TR)",
+                "Sabah Al Ahmed - KNPC140 (TR)",
+                "Sabah Al Ahmed - KNPC149 (TR)",
+                "Sabah Al Ahmed - KNPC142 (TR)",
+                "Khaldiya - Oula (TR)",
+                "Qurtuba - Oula (TR)",
+                "Hateen - Alfa (TR)",
+                "Kaifan - Kuwait Club (TR)",
+                "Shuhada - Oula (TR)",
+                "Omariya - Oula (TR)",
+                "Abdullah Mubarak (TR)",
+                "Shadadiya - Oula 52 (TR)",
+                "Al Nasser Club (TR)",
+                "Shadadiya - KU College of Admin(Education) (TR)",
+                "Shadadiya - KU College of Arts (Literacy) (TR)",
+                "Shadadiya - KU Life Science (TR)",
+                "Bnied Algar - Salam Hospital (TR)",
+                "Salmiya - AL Bidaa (TR)",
+                "Salmiya Alfa (TR)",
+                "Salmiya - Oula Block 10 (TR) - 71",
+                "Salmiya - Oula Block 11 (TR) - 14",
+                "Adan Oula- 1187 (TR)",
+                "Al Arabi Sport Club (TR)",
+                "Bayan - Oula (TR)",
+                "Amiri Hospital (TR)",
+                "Kuwait City - Kipco Tower (TR)",
+                "Shaab - Alfa (TR)",
+                "Mansouriyah - Alfa (TR)",
+                "Daiya - Oula (TR)",
+                "Kuwait City - Baitak Tower (TR)",
+                "Kuwait City - Trolley Ministry Complex (TR)",
+                "Kuwait City - Central Bank of Kuwait (TR)",
+                "Kuwait City - NBK Head Office (TR)",
+                "Jabriya - KU College of Medicine (TR)",
+                "West Mishref - Oula (TR)",
+                "Mangaf Sea Side (TR)",
+                "Marina Crecent (TR)"
             ]
         };
 
-        // APPLICATION STATE
-        let salesData = JSON.parse(localStorage.getItem('fresh_sales_data')) || [];
-        let returnLedger = JSON.parse(localStorage.getItem('fresh_returns_ledger')) || [];
-        let currentReturnInvoiceNo = parseInt(localStorage.getItem('fresh_next_inv_no')) || 500;
-        
-        let driverDraftBasket = [];
-        let html5QrScanner = null;
-        let selectedItemBarcode = null;
+        let currentInvoiceItems = [];
+        let html5QrcodeScanner = null;
+        let lastScannedBarcode = null;
+        let lastScanTime = 0;
 
-        // INITIALIZATION
-        document.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
-            document.getElementById('currentDateDisplay').textContent = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-            document.getElementById('driverReturnDate').valueAsDate = new Date();
-            document.getElementById('driverSentDate').valueAsDate = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000); // Default 3 days ago
-            document.getElementById('driverInvoiceNo').value = currentReturnInvoiceNo;
-
-            populateItemDatalist();
-            refreshAllViews();
-
-            // Toggle sidebar for mobile
-            document.getElementById('toggleSidebar').addEventListener('click', () => {
-                const sb = document.getElementById('sidebar');
-                sb.classList.toggle('-ml-64');
-            });
-        });
-
-        // TAB NAVIGATION
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active-tab'));
-
-            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-            document.getElementById(`nav-${tabId}`).classList.add('active-tab');
-
-            const titles = {
-                'dashboard': 'Dashboard & KPIs',
-                'sales': 'Sales Upload & Management',
-                'driver': 'Driver Return Entry Portal',
-                'accounts': 'Accounts & Return Ledger',
-                'reports': 'Performance & Waste Analytics'
-            };
-            document.getElementById('pageTitle').textContent = titles[tabId];
-
-            if(tabId === 'dashboard') refreshDashboard();
-            if(tabId === 'accounts') renderAccountsLedger();
-            if(tabId === 'reports') renderReports();
+        function onBrandChange() {
+            resetItemDetails();
+            document.getElementById('branch').value = "";
+            document.getElementById('branchSuggestions').style.display = "none";
         }
 
-        // 1. DASHBOARD CALCULATIONS
-        function refreshDashboard() {
-            let totalSentAmount = salesData.reduce((acc, row) => acc + (parseFloat(row.TotalPrice) || (row.Qty * row.UnitPrice)), 0);
-            let totalSentQty = salesData.reduce((acc, row) => acc + (parseInt(row.Qty) || 0), 0);
-            
-            let totalReturnAmount = returnLedger.reduce((acc, row) => acc + (parseFloat(row.TotalAmount) || (row.Qty * row.UnitPrice)), 0);
-            let totalReturnQty = returnLedger.reduce((acc, row) => acc + (parseInt(row.Qty) || 0), 0);
+        function filterBranchOptions() {
+            const brand = document.getElementById('brand').value;
+            const inputVal = document.getElementById('branch').value.toLowerCase();
+            const suggestionsContainer = document.getElementById('branchSuggestions');
 
-            let returnPct = totalSentAmount > 0 ? ((totalReturnAmount / totalSentAmount) * 100).toFixed(1) : "0.0";
-
-            document.getElementById('kpiNetReturn').textContent = `KWD ${totalReturnAmount.toFixed(3)}`;
-            document.getElementById('kpiReturnPercentText').textContent = `${returnPct}% of delivered value (KWD ${totalSentAmount.toFixed(3)})`;
-            document.getElementById('kpiTotalSent').textContent = `KWD ${totalSentAmount.toFixed(3)}`;
-            document.getElementById('kpiTotalQtyText').textContent = `${totalSentQty} items dispatched`;
-
-            // Top Bad Branches Ranking
-            let branchLossMap = {};
-            returnLedger.forEach(row => {
-                branchLossMap[row.BranchName] = (branchLossMap[row.BranchName] || 0) + (row.Qty * row.UnitPrice);
-            });
-            let sortedBranches = Object.entries(branchLossMap).sort((a,b) => b[1] - a[1]);
-
-            let badBranchContainer = document.getElementById('badBranchesList');
-            if(sortedBranches.length > 0) {
-                document.getElementById('kpiWorstBranch').textContent = sortedBranches[0][0];
-                document.getElementById('kpiWorstBranchSub').textContent = `KWD ${sortedBranches[0][1].toFixed(3)} Total Return Loss`;
-
-                badBranchContainer.innerHTML = sortedBranches.slice(0, 3).map(([branch, loss], idx) => `
-                    <div class="flex items-center justify-between p-2 rounded bg-slate-50 border border-slate-100">
-                        <span class="text-xs font-bold text-slate-700">${idx+1}. ${branch}</span>
-                        <span class="text-xs font-bold text-rose-600">KWD ${loss.toFixed(3)}</span>
-                    </div>
-                `).join('');
-            } else {
-                badBranchContainer.innerHTML = `<p class="text-xs text-slate-400 italic">No return data recorded.</p>`;
+            if (!brand) {
+                alert("Please select a Brand first!");
+                document.getElementById('branch').value = "";
+                return;
             }
 
-            // Top Bad Items Ranking
-            let itemLossMap = {};
-            returnLedger.forEach(row => {
-                itemLossMap[row.ItemName] = (itemLossMap[row.ItemName] || 0) + parseInt(row.Qty);
-            });
-            let sortedItems = Object.entries(itemLossMap).sort((a,b) => b[1] - a[1]);
+            const branches = branchDatabase[brand] || [];
+            const matches = branches.filter(b => b.toLowerCase().includes(inputVal));
 
-            let badItemContainer = document.getElementById('badItemsList');
-            if(sortedItems.length > 0) {
-                document.getElementById('kpiWorstItem').textContent = sortedItems[0][0];
-                document.getElementById('kpiWorstItemSub').textContent = `${sortedItems[0][1]} units returned`;
-
-                badItemContainer.innerHTML = sortedItems.slice(0, 3).map(([item, qty], idx) => `
-                    <div class="flex items-center justify-between p-2 rounded bg-slate-50 border border-slate-100">
-                        <span class="text-xs font-bold text-slate-700 truncate max-w-[200px]">${idx+1}. ${item}</span>
-                        <span class="text-xs font-bold text-amber-600">${qty} expired units</span>
-                    </div>
-                `).join('');
+            suggestionsContainer.innerHTML = "";
+            if (matches.length > 0) {
+                matches.forEach(branchName => {
+                    const div = document.createElement('div');
+                    div.className = 'autocomplete-suggestion';
+                    div.textContent = branchName;
+                    div.onclick = (e) => {
+                        e.preventDefault();
+                        document.getElementById('branch').value = branchName;
+                        suggestionsContainer.style.display = 'none';
+                    };
+                    suggestionsContainer.appendChild(div);
+                });
+                suggestionsContainer.style.display = 'block';
             } else {
-                badItemContainer.innerHTML = `<p class="text-xs text-slate-400 italic">No return data recorded.</p>`;
+                suggestionsContainer.style.display = 'none';
+            }
+        }
+
+        function filterItemOptions() {
+            const brand = document.getElementById('brand').value;
+            const inputVal = document.getElementById('itemName').value.toLowerCase();
+            const suggestionsContainer = document.getElementById('itemSuggestions');
+
+            if (!inputVal) {
+                suggestionsContainer.style.display = 'none';
+                return;
             }
 
-            // Brand Performance Summary Table
-            let brandStats = { Canteen: { sentAmt: 0, sentQty: 0, retAmt: 0, retQty: 0 }, Trolley: { sentAmt: 0, sentQty: 0, retAmt: 0, retQty: 0 } };
-            
-            salesData.forEach(r => {
-                if(brandStats[r.Brand]) {
-                    brandStats[r.Brand].sentAmt += (r.Qty * r.UnitPrice);
-                    brandStats[r.Brand].sentQty += parseInt(r.Qty);
-                }
-            });
-            returnLedger.forEach(r => {
-                if(brandStats[r.Brand]) {
-                    brandStats[r.Brand].retAmt += (r.Qty * r.UnitPrice);
-                    brandStats[r.Brand].retQty += parseInt(r.Qty);
-                }
-            });
+            suggestionsContainer.innerHTML = "";
+            let matchCount = 0;
 
-            let brandHtml = Object.keys(brandStats).map(brand => {
-                let s = brandStats[brand];
-                let netAmt = s.sentAmt - s.retAmt;
-                let retPct = s.sentAmt > 0 ? ((s.retAmt / s.sentAmt) * 100).toFixed(1) : "0.0";
-                return `
-                    <tr>
-                        <td class="py-3 px-4 font-bold text-slate-700">${brand}</td>
-                        <td class="py-3 px-4 text-right">${s.sentQty}</td>
-                        <td class="py-3 px-4 text-right text-rose-600 font-semibold">${s.retQty}</td>
-                        <td class="py-3 px-4 text-right font-bold ${retPct > 15 ? 'text-rose-600' : 'text-slate-700'}">${retPct}%</td>
-                        <td class="py-3 px-4 text-right">KWD ${s.sentAmt.toFixed(3)}</td>
-                        <td class="py-3 px-4 text-right text-rose-600 font-semibold">KWD ${s.retAmt.toFixed(3)}</td>
-                        <td class="py-3 px-4 text-right font-bold text-emerald-600">KWD ${netAmt.toFixed(3)}</td>
-                    </tr>
+            for (const [barcode, item] of Object.entries(productDatabase)) {
+                if (item.name.toLowerCase().includes(inputVal)) {
+                    const div = document.createElement('div');
+                    div.className = 'autocomplete-suggestion';
+                    div.textContent = `${item.name} (${barcode})`;
+                    div.onclick = (e) => {
+                        e.preventDefault();
+                        selectItemByBarcode(barcode);
+                        suggestionsContainer.style.display = 'none';
+                    };
+                    suggestionsContainer.appendChild(div);
+                    matchCount++;
+                }
+            }
+
+            suggestionsContainer.style.display = matchCount > 0 ? 'block' : 'none';
+        }
+
+        function selectItemByBarcode(barcode) {
+            const brand = document.getElementById('brand').value;
+            if (!brand) {
+                alert("Please select a Brand first!");
+                return;
+            }
+
+            const item = productDatabase[barcode];
+            if (item) {
+                document.getElementById('manualBarcode').value = barcode;
+                document.getElementById('itemName').value = item.name;
+                const price = brand === "Canteen" ? item.canteenPrice : item.trolleyPrice;
+                document.getElementById('unitPrice').value = price.toFixed(3);
+                playBeepSound();
+            } else {
+                alert("Barcode not recognized in product database!");
+            }
+        }
+
+        function initScanner() {
+            if (html5QrcodeScanner) return;
+            
+            html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 150 } }, false);
+            html5QrcodeScanner.render((decodedText) => {
+                const now = Date.now();
+                if (decodedText === lastScannedBarcode && (now - lastScanTime) < 2000) return;
+                lastScannedBarcode = decodedText;
+                lastScanTime = now;
+
+                selectItemByBarcode(decodedText);
+            }, (error) => {});
+        }
+
+        function addReturnItem() {
+            const barcode = document.getElementById('manualBarcode').value;
+            const itemName = document.getElementById('itemName').value;
+            const unitPrice = parseFloat(document.getElementById('unitPrice').value) || 0;
+            const qty = parseInt(document.getElementById('qty').value) || 1;
+            const reason = document.getElementById('returnReason').value;
+            const prodDate = document.getElementById('prodDate').value;
+
+            if (!barcode || !itemName) {
+                alert("Please select or scan an item first.");
+                return;
+            }
+
+            const itemTotal = unitPrice * qty;
+            currentInvoiceItems.push({ barcode, itemName, unitPrice, qty, reason, prodDate, itemTotal });
+
+            renderInvoiceItems();
+            resetItemDetails();
+        }
+
+        function renderInvoiceItems() {
+            const list = document.getElementById('itemList');
+            list.innerHTML = "";
+            let grandTotal = 0;
+
+            currentInvoiceItems.forEach((item, index) => {
+                grandTotal += item.itemTotal;
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center small';
+                li.innerHTML = `
+                    <div>
+                        <strong>${item.itemName}</strong> (x${item.qty})<br>
+                        <small class="text-muted">Reason: ${item.reason} | Prod: ${item.prodDate || 'N/A'}</small>
+                    </div>
+                    <div class="text-end">
+                        <span>KWD ${item.itemTotal.toFixed(3)}</span>
+                        <button class="btn btn-sm btn-link text-danger p-0 ms-2" onclick="removeReturnItem(${index})">&times;</button>
+                    </div>
                 `;
-            }).join('');
-            document.getElementById('dashboardBrandTable').innerHTML = brandHtml;
+                list.appendChild(li);
+            });
+
+            document.getElementById('invoiceTotalDisplay').textContent = grandTotal.toFixed(3);
         }
 
-        // 2. SALES IMPORT & EXPORT
-        function handleSalesUpload(e) {
-            const file = e.target.files[0];
-            if(!file) return;
+        function removeReturnItem(index) {
+            currentInvoiceItems.splice(index, 1);
+            renderInvoiceItems();
+        }
+
+        function resetItemDetails() {
+            document.getElementById('manualBarcode').value = "";
+            document.getElementById('itemName').value = "";
+            document.getElementById('unitPrice').value = "";
+            document.getElementById('qty').value = "1";
+            document.getElementById('prodDate').value = "";
+        }
+
+        function saveFullInvoice() {
+            const returnDate = document.getElementById('returnDateHeader').value;
+            const invoiceNo = document.getElementById('invoiceNo').value.trim();
+            const brand = document.getElementById('brand').value;
+            const branch = document.getElementById('branch').value.trim();
+
+            if (!returnDate || !invoiceNo || !brand || !branch) {
+                alert("Please fill in all Header details (Return Date, Invoice No, Brand, Branch)!");
+                return;
+            }
+
+            if (currentInvoiceItems.length === 0) {
+                alert("Please add at least one item to the return invoice!");
+                return;
+            }
+
+            currentInvoiceItems.forEach(item => {
+                savedReturnsDatabase.push({
+                    returnDate, invoiceNo, brand, branch,
+                    barcode: item.barcode, itemName: item.itemName,
+                    unitPrice: item.unitPrice, qty: item.qty,
+                    reason: item.reason, prodDate: item.prodDate,
+                    itemTotal: item.itemTotal, driver: currentUser ? currentUser.name : "Driver"
+                });
+            });
+
+            localStorage.setItem('returnsData', JSON.stringify(savedReturnsDatabase));
+
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST', mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(savedReturnsDatabase)
+            }).catch(err => console.log("Cloud sync status:", err));
+
+            alert("Return Delivery Note saved successfully!");
+            currentInvoiceItems = [];
+            renderInvoiceItems();
+            document.getElementById('invoiceNo').value = "";
+        }
+
+        function uploadSalesExcel() {
+            const fileInput = document.getElementById('salesExcelInput');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert("Please select an Excel file to upload!");
+                return;
+            }
 
             const reader = new FileReader();
-            reader.onload = function(evt) {
-                const data = new Uint8Array(evt.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                const json = XLSX.utils.sheet_to_json(worksheet);
+            reader.onload = function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
 
-                // Map Sheet to Standard Format
-                const formatted = json.map(row => ({
-                    SentDate: row['Sent Date'] || row['SentDate'] || new Date().toISOString().split('T')[0],
-                    InvoiceNo: row['Invoice No'] || row['InvoiceNo'] || 'INV-001',
-                    Brand: row['Brand'] || 'Canteen',
-                    BranchName: row['Branch Name'] || row['BranchName'] || 'General Branch',
-                    Barcode: String(row['Barcode'] || ''),
-                    ItemName: row['Item Name'] || row['ItemName'] || 'Item',
-                    Qty: parseInt(row['Qty'] || 0),
-                    UnitPrice: parseFloat(row['Unit Price'] || row['UnitPrice'] || 0),
-                    RSPPrice: parseFloat(row['RSP Price'] || row['RSPPrice'] || 0),
-                    TotalPrice: parseFloat(row['Total Price'] || row['TotalPrice'] || 0)
+                if (jsonData.length === 0) {
+                    alert("Uploaded Excel file is empty!");
+                    return;
+                }
+
+                salesDatabase = jsonData.map(row => ({
+                    sentDate: cleanDate(row["Sent Date"] || row["Date"] || row["sentDate"]),
+                    sentInvoice: row["Sent Invoice"] || row["Invoice"] || "",
+                    brand: row["Brand"] || "",
+                    branchName: row["Branch name"] || row["Branch"] || "",
+                    barcode: row["Barcode"] || "",
+                    itemName: row["Item Name"] || row["Item"] || "",
+                    qty: parseInt(row["Qty"]) || 0,
+                    unitPrice: parseFloat(row["Unit Price"]) || 0,
+                    rsp: parseFloat(row["RSP"]) || 0,
+                    total: parseFloat(row["Total"]) || (parseInt(row["Qty"]) * parseFloat(row["Unit Price"])) || 0
                 }));
 
-                salesData = salesData.concat(formatted);
-                localStorage.setItem('fresh_sales_data', JSON.stringify(salesData));
-                alert(`Successfully imported ${formatted.length} sales rows.`);
-                renderSalesTable();
-                refreshDashboard();
+                localStorage.setItem('dailySalesData', JSON.stringify(salesDatabase));
+                alert(`Successfully uploaded ${salesDatabase.length} sales records!`);
+                fileInput.value = "";
             };
             reader.readAsArrayBuffer(file);
         }
 
-        function renderSalesTable() {
-            let brandFilter = document.getElementById('salesFilterBrand').value;
-            let dateFilter = document.getElementById('salesFilterDate').value;
+        function cleanDate(d) {
+            if (!d) return "";
+            if (typeof d === 'number') {
+                return new Date((d - (25567 + 2)) * 86400 * 1000).toISOString().split('T')[0];
+            }
+            return String(d).trim().split('T')[0];
+        }
 
-            let filtered = salesData.filter(row => {
-                let matchesBrand = !brandFilter || row.Brand === brandFilter;
-                let matchesDate = !dateFilter || row.SentDate === dateFilter;
-                return matchesBrand && matchesDate;
-            });
+        // ========== DRIVER DASHBOARD ==========
+        function renderDriverDashboard() {
+            const selectedDate = document.getElementById('driverDateSlicer').value;
+            const driverName = currentUser ? currentUser.name : "Driver";
 
-            let tbody = document.getElementById('salesTableBody');
-            if(filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="py-6 text-center text-slate-400">No sales records found matching filter.</td></tr>`;
-                return;
+            let filteredReturns = savedReturnsDatabase.filter(r => r.driver === driverName);
+
+            if (selectedDate) {
+                filteredReturns = filteredReturns.filter(r => r.returnDate === selectedDate || r.prodDate === selectedDate);
             }
 
-            tbody.innerHTML = filtered.map(row => `
-                <tr class="hover:bg-slate-50">
-                    <td class="py-2.5 px-4">${row.SentDate}</td>
-                    <td class="py-2.5 px-4 font-mono text-xs">${row.InvoiceNo}</td>
-                    <td class="py-2.5 px-4"><span class="px-2 py-0.5 rounded text-xs font-semibold ${row.Brand === 'Canteen' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}">${row.Brand}</span></td>
-                    <td class="py-2.5 px-4 font-medium text-slate-800">${row.BranchName}</td>
-                    <td class="py-2.5 px-4 font-mono text-xs text-slate-500">${row.Barcode}</td>
-                    <td class="py-2.5 px-4">${row.ItemName}</td>
-                    <td class="py-2.5 px-4 text-right font-bold">${row.Qty}</td>
-                    <td class="py-2.5 px-4 text-right">${row.UnitPrice.toFixed(3)}</td>
-                    <td class="py-2.5 px-4 text-right font-bold text-slate-800">${(row.Qty * row.UnitPrice).toFixed(3)}</td>
-                </tr>
-            `).join('');
-        }
+            // Calculate KPIs
+            const totalDeliveries = filteredReturns.length;
+            const totalReturnsKWD = filteredReturns.reduce((acc, r) => acc + (r.itemTotal || 0), 0);
+            const netPerformance = totalDeliveries > 0 ? (totalDeliveries - (filteredReturns.length / 2)) * 100 : 0;
+            const returnRate = totalDeliveries > 0 ? ((filteredReturns.length / totalDeliveries) * 100) : 0;
 
-        function clearSalesFilters() {
-            document.getElementById('salesFilterBrand').value = '';
-            document.getElementById('salesFilterDate').value = '';
-            renderSalesTable();
-        }
+            document.getElementById('driverKpiDeliveries').textContent = totalDeliveries;
+            document.getElementById('driverKpiReturns').textContent = `KWD ${totalReturnsKWD.toFixed(3)}`;
+            document.getElementById('driverKpiNet').textContent = `KWD ${Math.max(0, netPerformance).toFixed(3)}`;
+            document.getElementById('driverKpiRate').textContent = `${returnRate.toFixed(2)}%`;
 
-        function downloadSalesTemplate() {
-            const templateData = [
-                { "Sent Date": "2026-07-29", "Invoice No": "1001", "Brand": "Canteen", "Branch Name": "Waha (Canteen)", "Barcode": "7517846597753", "Item Name": "Beef Stroganoff with Penne Pasta", "Qty": 10, "Unit Price": 1.625, "RSP Price": 2.000, "Total Price": 16.250 }
-            ];
-            const ws = XLSX.utils.json_to_sheet(templateData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "SalesTemplate");
-            XLSX.writeFile(wb, "Sales_Upload_Template.xlsx");
-        }
-
-        function exportSalesExcel() {
-            const ws = XLSX.utils.json_to_sheet(salesData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "SalesRecords");
-            XLSX.writeFile(wb, "Sales_Data_Export.xlsx");
-        }
-
-        // 3. DRIVER RETURN ENTRY PORTAL
-        function onDriverBrandChange() {
-            const brand = document.getElementById('driverBrand').value;
-            const branchDatalist = document.getElementById('branchOptions');
-            branchDatalist.innerHTML = '';
-
-            if(brand && branchDatabase[brand]) {
-                branchDatabase[brand].forEach(branch => {
-                    let option = document.createElement('option');
-                    option.value = branch;
-                    branchDatalist.appendChild(option);
-                });
-            }
-            populateItemDatalist();
-        }
-
-        function populateItemDatalist() {
-            const itemDatalist = document.getElementById('itemMasterOptions');
-            itemDatalist.innerHTML = '';
-            
-            Object.entries(itemDatabase).forEach(([code, item]) => {
-                let option = document.createElement('option');
-                option.value = item.name;
-                option.label = `Barcode: ${code}`;
-                itemDatalist.appendChild(option);
-            });
-        }
-
-        function onItemSearchInput() {
-            const query = document.getElementById('driverItemSearch').value.trim().toLowerCase();
-            const brand = document.getElementById('driverBrand').value || 'Canteen';
-            
-            let foundBarcode = null;
-            let foundItem = null;
-
-            // Search by Barcode or Name
-            for (let [barcode, details] of Object.entries(itemDatabase)) {
-                if (barcode === query || details.name.toLowerCase() === query) {
-                    foundBarcode = barcode;
-                    foundItem = details;
-                    break;
-                }
-            }
-
-            if (foundItem) {
-                selectedItemBarcode = foundBarcode;
-                document.getElementById('displayBarcode').textContent = foundBarcode;
-                
-                // Set Price based on Brand
-                let price = (brand === 'Trolley') ? foundItem.trolleyPrice : foundItem.canteenPrice;
-                document.getElementById('driverUnitPrice').value = price.toFixed(3);
-                calculateDriverTotal();
+            // Render returns table
+            const tbody = document.getElementById('driverReturnsTable');
+            tbody.innerHTML = "";
+            if (filteredReturns.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-muted">No returns found</td></tr>';
             } else {
-                selectedItemBarcode = null;
-                document.getElementById('displayBarcode').textContent = '---';
-                document.getElementById('driverUnitPrice').value = '0.000';
-                calculateDriverTotal();
-            }
-        }
-
-        function calculateDriverTotal() {
-            const qty = parseInt(document.getElementById('driverQty').value) || 0;
-            const price = parseFloat(document.getElementById('driverUnitPrice').value) || 0;
-            const total = qty * price;
-            document.getElementById('driverSubtotal').textContent = `${total.toFixed(3)} KWD`;
-        }
-
-        function addReturnLineItem() {
-            const brand = document.getElementById('driverBrand').value;
-            const branch = document.getElementById('driverBranchInput').value;
-            const searchVal = document.getElementById('driverItemSearch').value;
-            const qty = parseInt(document.getElementById('driverQty').value);
-            const unitPrice = parseFloat(document.getElementById('driverUnitPrice').value);
-            const reason = document.getElementById('driverReason').value;
-            const sentDate = document.getElementById('driverSentDate').value;
-
-            if(!brand || !branch) {
-                alert('Please select both Brand and Branch Name first.');
-                return;
-            }
-            if(!selectedItemBarcode || !searchVal) {
-                alert('Please select a valid item SKU from the search or scanner.');
-                return;
-            }
-            if(!qty || qty <= 0) {
-                alert('Please enter a valid return quantity.');
-                return;
-            }
-
-            const itemDetails = itemDatabase[selectedItemBarcode];
-
-            driverDraftBasket.push({
-                barcode: selectedItemBarcode,
-                itemName: itemDetails.name,
-                qty: qty,
-                unitPrice: unitPrice,
-                totalAmount: qty * unitPrice,
-                reason: reason,
-                sentDate: sentDate
-            });
-
-            renderDriverBasket();
-
-            // Clear SKU line input
-            document.getElementById('driverItemSearch').value = '';
-            document.getElementById('displayBarcode').textContent = '---';
-            document.getElementById('driverUnitPrice').value = '0.000';
-            document.getElementById('driverQty').value = 1;
-            selectedItemBarcode = null;
-            calculateDriverTotal();
-        }
-
-        function renderDriverBasket() {
-            const branch = document.getElementById('driverBranchInput').value || 'Unselected';
-            document.getElementById('driverDraftHeader').textContent = `Branch: ${branch}`;
-            document.getElementById('driverItemCountTag').textContent = `${driverDraftBasket.length} Items`;
-
-            let tbody = document.getElementById('driverBasketBody');
-            if(driverDraftBasket.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400">Voucher list is empty. Add items from the left panel.</td></tr>`;
-                document.getElementById('driverGrandTotal').textContent = 'KWD 0.000';
-                return;
-            }
-
-            let grandTotal = 0;
-            tbody.innerHTML = driverDraftBasket.map((item, idx) => {
-                grandTotal += item.totalAmount;
-                return `
-                    <tr class="hover:bg-slate-50">
-                        <td class="py-2.5 px-3 font-medium text-slate-800">${item.itemName}</td>
-                        <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-xs ${item.reason === 'Expired' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'}">${item.reason}</span></td>
-                        <td class="py-2.5 px-3 text-xs text-slate-500">${item.sentDate}</td>
-                        <td class="py-2.5 px-3 text-right font-bold">${item.qty}</td>
-                        <td class="py-2.5 px-3 text-right">${item.unitPrice.toFixed(3)}</td>
-                        <td class="py-2.5 px-3 text-right font-bold text-slate-800">${item.totalAmount.toFixed(3)}</td>
-                        <td class="py-2.5 px-3 text-center">
-                            <button onclick="removeDriverBasketItem(${idx})" class="text-rose-500 hover:text-rose-700">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-
-            document.getElementById('driverGrandTotal').textContent = `KWD ${grandTotal.toFixed(3)}`;
-            lucide.createIcons();
-        }
-
-        function removeDriverBasketItem(idx) {
-            driverDraftBasket.splice(idx, 1);
-            renderDriverBasket();
-        }
-
-        function clearDriverDraft() {
-            driverDraftBasket = [];
-            renderDriverBasket();
-        }
-
-        function saveReturnVoucher() {
-            if(driverDraftBasket.length === 0) {
-                alert('Cannot submit an empty return voucher.');
-                return;
-            }
-
-            const returnDate = document.getElementById('driverReturnDate').value;
-            const invoiceNo = document.getElementById('driverInvoiceNo').value;
-            const brand = document.getElementById('driverBrand').value;
-            const branch = document.getElementById('driverBranchInput').value;
-
-            // Save line items to global ledger
-            driverDraftBasket.forEach(line => {
-                returnLedger.push({
-                    ReturnDate: returnDate,
-                    ReturnInvoiceNo: invoiceNo,
-                    Brand: brand,
-                    BranchName: branch,
-                    Barcode: line.barcode,
-                    ItemName: line.itemName,
-                    Qty: line.qty,
-                    UnitPrice: line.unitPrice,
-                    TotalAmount: line.totalAmount,
-                    Reason: line.reason,
-                    OriginalSentDate: line.sentDate
+                filteredReturns.forEach(r => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${r.returnDate}</td>
+                            <td>${r.invoiceNo}</td>
+                            <td>${r.branch}</td>
+                            <td class="text-start">${r.itemName}</td>
+                            <td>${r.qty}</td>
+                            <td>${r.reason}</td>
+                            <td>KWD ${r.itemTotal.toFixed(3)}</td>
+                        </tr>
+                    `;
                 });
-            });
-
-            // Increment Invoice Counter
-            currentReturnInvoiceNo++;
-            localStorage.setItem('fresh_next_inv_no', currentReturnInvoiceNo.toString());
-            localStorage.setItem('fresh_returns_ledger', JSON.stringify(returnLedger));
-
-            alert(`Return Voucher #${invoiceNo} successfully saved!`);
-
-            // Reset Form & Voucher Draft
-            driverDraftBasket = [];
-            document.getElementById('driverInvoiceNo').value = currentReturnInvoiceNo;
-            renderDriverBasket();
-            refreshDashboard();
-        }
-
-        // Camera Scanner Integration
-        function toggleCameraScanner() {
-            const container = document.getElementById('scannerContainer');
-            if(container.classList.contains('hidden')) {
-                container.classList.remove('hidden');
-                html5QrScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 150} });
-                html5QrScanner.render((decodedText) => {
-                    // Success callback
-                    document.getElementById('driverItemSearch').value = decodedText;
-                    onItemSearchInput();
-                    // Stop scanning after match
-                    html5QrScanner.clear();
-                    container.classList.add('hidden');
-                }, (errorMessage) => {
-                    // handle scan error
-                });
-            } else {
-                if(html5QrScanner) html5QrScanner.clear();
-                container.classList.add('hidden');
             }
         }
 
-        // 4. ACCOUNTS LEDGER & RECONCILIATION
-        function renderAccountsLedger() {
-            const brandFilter = document.getElementById('acctFilterBrand').value;
-            const branchFilter = document.getElementById('acctFilterBranch').value.toLowerCase();
-
-            let filtered = returnLedger.filter(row => {
-                let matchesBrand = !brandFilter || row.Brand === brandFilter;
-                let matchesBranch = !branchFilter || row.BranchName.toLowerCase().includes(branchFilter);
-                return matchesBrand && matchesBranch;
-            });
-
-            let tbody = document.getElementById('accountsTableBody');
-            if(filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="py-6 text-center text-slate-400">No return invoices recorded in ledger.</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = filtered.map(row => `
-                <tr class="hover:bg-slate-50">
-                    <td class="py-2.5 px-4">${row.ReturnDate}</td>
-                    <td class="py-2.5 px-4 font-mono font-bold text-blue-600">#${row.ReturnInvoiceNo}</td>
-                    <td class="py-2.5 px-4"><span class="px-2 py-0.5 rounded text-xs font-semibold ${row.Brand === 'Canteen' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}">${row.Brand}</span></td>
-                    <td class="py-2.5 px-4 font-medium text-slate-800">${row.BranchName}</td>
-                    <td class="py-2.5 px-4">${row.ItemName}</td>
-                    <td class="py-2.5 px-4"><span class="px-2 py-0.5 rounded text-xs ${row.Reason === 'Expired' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'}">${row.Reason}</span></td>
-                    <td class="py-2.5 px-4 text-right font-bold">${row.Qty}</td>
-                    <td class="py-2.5 px-4 text-right">${row.UnitPrice.toFixed(3)}</td>
-                    <td class="py-2.5 px-4 text-right font-bold text-rose-600">KWD ${row.TotalAmount.toFixed(3)}</td>
-                </tr>
-            `).join('');
+        function resetDriverDate() {
+            document.getElementById('driverDateSlicer').value = "";
+            renderDriverDashboard();
         }
 
-        function exportReturnsExcel() {
-            const ws = XLSX.utils.json_to_sheet(returnLedger);
+        function exportDriverReturns() {
+            const driverName = currentUser ? currentUser.name : "Driver";
+            const driverReturns = savedReturnsDatabase.filter(r => r.driver === driverName);
+
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "ReturnLedger");
-            XLSX.writeFile(wb, "Return_Invoices_Export.xlsx");
+            const ws = XLSX.utils.json_to_sheet(driverReturns);
+            XLSX.utils.book_append_sheet(wb, ws, "My Returns");
+            XLSX.writeFile(wb, `${driverName}_Returns_${new Date().toISOString().split('T')[0]}.xlsx`);
         }
 
-        // 5. PERFORMANCE REPORTS MATRIX
-        function renderReports() {
-            // Branch Matrix Calculation
-            let branchMatrix = {};
-            salesData.forEach(s => {
-                if(!branchMatrix[s.BranchName]) {
-                    branchMatrix[s.BranchName] = { sentQty: 0, retQty: 0, sentAmt: 0, retAmt: 0 };
-                }
-                branchMatrix[s.BranchName].sentQty += parseInt(s.Qty);
-                branchMatrix[s.BranchName].sentAmt += (s.Qty * s.UnitPrice);
-            });
-            returnLedger.forEach(r => {
-                if(!branchMatrix[r.BranchName]) {
-                    branchMatrix[r.BranchName] = { sentQty: 0, retQty: 0, sentAmt: 0, retAmt: 0 };
-                }
-                branchMatrix[r.BranchName].retQty += parseInt(r.Qty);
-                branchMatrix[r.BranchName].retAmt += (r.Qty * r.UnitPrice);
-            });
-
-            let branchRows = Object.entries(branchMatrix).map(([branch, val]) => {
-                let soldQty = val.sentQty - val.retQty;
-                let soldAmt = val.sentAmt - val.retAmt;
-                let retPct = val.sentQty > 0 ? ((val.retQty / val.sentQty) * 100).toFixed(1) : "0.0";
-                return `
-                    <tr class="hover:bg-slate-50">
-                        <td class="py-2.5 px-4 font-bold text-slate-800">${branch}</td>
-                        <td class="py-2.5 px-4 text-right">${val.sentQty}</td>
-                        <td class="py-2.5 px-4 text-right text-rose-600 font-semibold">${val.retQty}</td>
-                        <td class="py-2.5 px-4 text-right font-bold text-emerald-600">${soldQty}</td>
-                        <td class="py-2.5 px-4 text-right font-bold ${retPct > 15 ? 'text-rose-600' : 'text-slate-700'}">${retPct}%</td>
-                        <td class="py-2.5 px-4 text-right">KWD ${val.sentAmt.toFixed(3)}</td>
-                        <td class="py-2.5 px-4 text-right text-rose-600 font-semibold">KWD ${val.retAmt.toFixed(3)}</td>
-                        <td class="py-2.5 px-4 text-right font-bold text-emerald-600">KWD ${soldAmt.toFixed(3)}</td>
-                    </tr>
-                `;
-            }).join('');
-            document.getElementById('reportBranchBody').innerHTML = branchRows || `<tr><td colspan="8" class="py-4 text-center text-slate-400">No data available.</td></tr>`;
-
-            // Item Matrix Calculation
-            let itemMatrix = {};
-            salesData.forEach(s => {
-                if(!itemMatrix[s.ItemName]) {
-                    itemMatrix[s.ItemName] = { sentQty: 0, retQty: 0, sentAmt: 0, retAmt: 0 };
-                }
-                itemMatrix[s.ItemName].sentQty += parseInt(s.Qty);
-                itemMatrix[s.ItemName].sentAmt += (s.Qty * s.UnitPrice);
-            });
-            returnLedger.forEach(r => {
-                if(!itemMatrix[r.ItemName]) {
-                    itemMatrix[r.ItemName] = { sentQty: 0, retQty: 0, sentAmt: 0, retAmt: 0 };
-                }
-                itemMatrix[r.ItemName].retQty += parseInt(r.Qty);
-                itemMatrix[r.ItemName].retAmt += (r.Qty * r.UnitPrice);
-            });
-
-            let itemRows = Object.entries(itemMatrix).map(([item, val]) => {
-                let soldQty = val.sentQty - val.retQty;
-                let soldAmt = val.sentAmt - val.retAmt;
-                let retPct = val.sentQty > 0 ? ((val.retQty / val.sentQty) * 100).toFixed(1) : "0.0";
-                return `
-                    <tr class="hover:bg-slate-50">
-                        <td class="py-2.5 px-4 font-bold text-slate-800">${item}</td>
-                        <td class="py-2.5 px-4 text-right">${val.sentQty}</td>
-                        <td class="py-2.5 px-4 text-right text-rose-600 font-semibold">${val.retQty}</td>
-                        <td class="py-2.5 px-4 text-right font-bold text-emerald-600">${soldQty}</td>
-                        <td class="py-2.5 px-4 text-right font-bold ${retPct > 15 ? 'text-rose-600' : 'text-slate-700'}">${retPct}%</td>
-                        <td class="py-2.5 px-4 text-right">KWD ${val.sentAmt.toFixed(3)}</td>
-                        <td class="py-2.5 px-4 text-right text-rose-600 font-semibold">KWD ${val.retAmt.toFixed(3)}</td>
-                        <td class="py-2.5 px-4 text-right font-bold text-emerald-600">KWD ${soldAmt.toFixed(3)}</td>
-                    </tr>
-                `;
-            }).join('');
-            document.getElementById('reportItemBody').innerHTML = itemRows || `<tr><td colspan="8" class="py-4 text-center text-slate-400">No data available.</td></tr>`;
+        // ========== EXECUTIVE DASHBOARD ==========
+        function resetDashDate() {
+            document.getElementById('dashDateSlicer').value = "";
+            renderExecutiveDashboard();
         }
 
-        // REFRESH & DEMO RESET
-        function refreshAllViews() {
-            renderSalesTable();
-            renderAccountsLedger();
-            refreshDashboard();
-        }
+        function renderExecutiveDashboard() {
+            const selectedDate = document.getElementById('dashDateSlicer').value;
 
-        function resetToSampleData() {
-            if(confirm("Reset current data and load sample sales/return transactions?")) {
-                salesData = [
-                    { SentDate: "2026-07-26", InvoiceNo: "INV-101", Brand: "Canteen", BranchName: "Waha (Canteen)", Barcode: "7517846597753", ItemName: "Beef Stroganoff with Penne Pasta", Qty: 20, UnitPrice: 1.625, RSPPrice: 2.000, TotalPrice: 32.500 },
-                    { SentDate: "2026-07-26", InvoiceNo: "INV-102", Brand: "Trolley", BranchName: "Jahra - Alfa (TR)", Barcode: "7517846597241", ItemName: "Butter Chicken", Qty: 15, UnitPrice: 1.361, RSPPrice: 1.750, TotalPrice: 20.415 }
-                ];
-                returnLedger = [
-                    { ReturnDate: "2026-07-29", ReturnInvoiceNo: "500", Brand: "Canteen", BranchName: "Waha (Canteen)", Barcode: "7517846597753", ItemName: "Beef Stroganoff with Penne Pasta", Qty: 4, UnitPrice: 1.625, TotalAmount: 6.500, Reason: "Expired", OriginalSentDate: "2026-07-26" }
-                ];
-                currentReturnInvoiceNo = 501;
+            let filteredSales = salesDatabase;
+            let filteredReturns = savedReturnsDatabase;
 
-                localStorage.setItem('fresh_sales_data', JSON.stringify(salesData));
-                localStorage.setItem('fresh_returns_ledger', JSON.stringify(returnLedger));
-                localStorage.setItem('fresh_next_inv_no', currentReturnInvoiceNo.toString());
-
-                document.getElementById('driverInvoiceNo').value = currentReturnInvoiceNo;
-                refreshAllViews();
+            if (selectedDate) {
+                filteredSales = salesDatabase.filter(s => s.sentDate === selectedDate);
+                filteredReturns = savedReturnsDatabase.filter(r => r.returnDate === selectedDate || r.prodDate === selectedDate);
             }
+
+            const totalSalesKWD = filteredSales.reduce((acc, s) => acc + (s.total || 0), 0);
+            const totalReturnsKWD = filteredReturns.reduce((acc, r) => acc + (r.itemTotal || 0), 0);
+            const netSalesKWD = totalSalesKWD - totalReturnsKWD;
+            const returnRate = totalSalesKWD > 0 ? ((totalReturnsKWD / totalSalesKWD) * 100) : 0;
+
+            document.getElementById('dashKpiSales').textContent = `KWD ${totalSalesKWD.toFixed(3)}`;
+            document.getElementById('dashKpiReturns').textContent = `KWD ${totalReturnsKWD.toFixed(3)}`;
+            document.getElementById('dashKpiNet').textContent = `KWD ${netSalesKWD.toFixed(3)}`;
+            document.getElementById('dashKpiRate').textContent = `${returnRate.toFixed(2)}%`;
+
+            const itemStats = {};
+            filteredSales.forEach(s => {
+                if (!itemStats[s.itemName]) itemStats[s.itemName] = { soldQty: 0, soldKWD: 0, retQty: 0, retKWD: 0 };
+                itemStats[s.itemName].soldQty += s.qty;
+                itemStats[s.itemName].soldKWD += s.total;
+            });
+            filteredReturns.forEach(r => {
+                if (!itemStats[r.itemName]) itemStats[r.itemName] = { soldQty: 0, soldKWD: 0, retQty: 0, retKWD: 0 };
+                itemStats[r.itemName].retQty += r.qty;
+                itemStats[r.itemName].retKWD += r.itemTotal;
+            });
+
+            const sortedTopItems = Object.entries(itemStats)
+                .map(([name, stat]) => ({ name, netKWD: stat.soldKWD - stat.retKWD, soldQty: stat.soldQty }))
+                .sort((a, b) => b.netKWD - a.netKWD)
+                .slice(0, 10);
+
+            const topItemsTbody = document.getElementById('topItemsTable');
+            topItemsTbody.innerHTML = sortedTopItems.length ? "" : `<tr><td colspan="4" class="text-muted">No Data</td></tr>`;
+            sortedTopItems.forEach((item, i) => {
+                topItemsTbody.innerHTML += `<tr><td>${i+1}</td><td class="text-start">${item.name}</td><td>${item.soldQty}</td><td>KWD ${item.netKWD.toFixed(3)}</td></tr>`;
+            });
+
+            const sortedBadItems = Object.entries(itemStats)
+                .map(([name, stat]) => {
+                    const retPct = stat.soldQty > 0 ? (stat.retQty / stat.soldQty) * 100 : (stat.retQty > 0 ? 100 : 0);
+                    return { name, retQty: stat.retQty, retPct, lossKWD: stat.retKWD };
+                })
+                .filter(i => i.retQty > 0)
+                .sort((a, b) => b.retPct - a.retPct)
+                .slice(0, 10);
+
+            const badItemsTbody = document.getElementById('badItemsTable');
+            badItemsTbody.innerHTML = sortedBadItems.length ? "" : `<tr><td colspan="5" class="text-muted">No Bad Performance</td></tr>`;
+            sortedBadItems.forEach((item, i) => {
+                badItemsTbody.innerHTML += `<tr><td>${i+1}</td><td class="text-start">${item.name}</td><td>${item.retQty}</td><td><span class="badge badge-bad">${item.retPct.toFixed(1)}%</span></td><td>KWD ${item.lossKWD.toFixed(3)}</td></tr>`;
+            });
+
+            const branchStats = {};
+            filteredSales.forEach(s => {
+                if (!branchStats[s.branchName]) branchStats[s.branchName] = { sentKWD: 0, retKWD: 0 };
+                branchStats[s.branchName].sentKWD += s.total;
+            });
+            filteredReturns.forEach(r => {
+                if (!branchStats[r.branch]) branchStats[r.branch] = { sentKWD: 0, retKWD: 0 };
+                branchStats[r.branch].retKWD += r.itemTotal;
+            });
+
+            const sortedTopBranches = Object.entries(branchStats)
+                .map(([branch, stat]) => ({ branch, netKWD: stat.sentKWD - stat.retKWD, sentKWD: stat.sentKWD }))
+                .sort((a, b) => b.netKWD - a.netKWD)
+                .slice(0, 10);
+
+            const topBranchesTbody = document.getElementById('topBranchesTable');
+            topBranchesTbody.innerHTML = sortedTopBranches.length ? "" : `<tr><td colspan="4" class="text-muted">No Data</td></tr>`;
+            sortedTopBranches.forEach((b, i) => {
+                topBranchesTbody.innerHTML += `<tr><td>${i+1}</td><td class="text-start">${b.branch}</td><td>KWD ${b.sentKWD.toFixed(3)}</td><td>KWD ${b.netKWD.toFixed(3)}</td></tr>`;
+            });
+
+            const sortedBadBranches = Object.entries(branchStats)
+                .map(([branch, stat]) => {
+                    const retPct = stat.sentKWD > 0 ? (stat.retKWD / stat.sentKWD) * 100 : (stat.retKWD > 0 ? 100 : 0);
+                    return { branch, retKWD: stat.retKWD, retPct };
+                })
+                .filter(b => b.retKWD > 0)
+                .sort((a, b) => b.retPct - a.retPct)
+                .slice(0, 10);
+
+            const badBranchesTbody = document.getElementById('badBranchesTable');
+            badBranchesTbody.innerHTML = sortedBadBranches.length ? "" : `<tr><td colspan="4" class="text-muted">No Bad Performance</td></tr>`;
+            sortedBadBranches.forEach((b, i) => {
+                badBranchesTbody.innerHTML += `<tr><td>${i+1}</td><td class="text-start">${b.branch}</td><td>KWD ${b.retKWD.toFixed(3)}</td><td><span class="badge badge-bad">${b.retPct.toFixed(1)}%</span></td></tr>`;
+            });
+
+            renderDashboardChart(totalSalesKWD, totalReturnsKWD, netSalesKWD);
+        }
+
+        function renderDashboardChart(sales, returns, net) {
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Total Sent Sales', 'Total Returns', 'Net Sales'],
+                    datasets: [{
+                        label: 'KWD Amount',
+                        data: [sales, returns, net],
+                        backgroundColor: ['#0d6efd', '#dc3545', '#198754']
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } } }
+            });
+        }
+
+        // ========== REPORT TAB ==========
+        function renderBrandReport() {
+            const brandFilter = document.getElementById('reportBrandSelect').value;
+            const branchSearch = document.getElementById('reportBranchSearch').value.toLowerCase();
+            const dateFilter = document.getElementById('reportDateSelect').value;
+
+            let filteredSales = salesDatabase;
+            let filteredReturns = savedReturnsDatabase;
+
+            if (brandFilter) {
+                filteredSales = filteredSales.filter(s => s.brand === brandFilter);
+                filteredReturns = filteredReturns.filter(r => r.brand === brandFilter);
+            }
+
+            if (branchSearch) {
+                filteredSales = filteredSales.filter(s => s.branchName.toLowerCase().includes(branchSearch));
+                filteredReturns = filteredReturns.filter(r => r.branch.toLowerCase().includes(branchSearch));
+            }
+
+            if (dateFilter) {
+                filteredSales = filteredSales.filter(s => s.sentDate === dateFilter);
+                filteredReturns = filteredReturns.filter(r => r.returnDate === dateFilter || r.prodDate === dateFilter);
+            }
+
+            const branchStats = {};
+            filteredSales.forEach(s => {
+                if (!branchStats[s.branchName]) {
+                    branchStats[s.branchName] = { sentQty: 0, sentKWD: 0, retQty: 0, retKWD: 0 };
+                }
+                branchStats[s.branchName].sentQty += s.qty;
+                branchStats[s.branchName].sentKWD += s.total;
+            });
+
+            filteredReturns.forEach(r => {
+                if (!branchStats[r.branch]) {
+                    branchStats[r.branch] = { sentQty: 0, sentKWD: 0, retQty: 0, retKWD: 0 };
+                }
+                branchStats[r.branch].retQty += r.qty;
+                branchStats[r.branch].retKWD += r.itemTotal;
+            });
+
+            const tbody = document.getElementById('brandReportTableBody');
+            tbody.innerHTML = "";
+
+            if (Object.keys(branchStats).length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-muted">No data available</td></tr>';
+                return;
+            }
+
+            Object.entries(branchStats).forEach(([branch, stat]) => {
+                const returnPct = stat.sentQty > 0 ? ((stat.retQty / stat.sentQty) * 100).toFixed(2) : "0.00";
+                const soldAmount = stat.sentKWD - stat.retKWD;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="text-start">${branch}</td>
+                        <td>${stat.sentQty}</td>
+                        <td>${stat.retQty}</td>
+                        <td><span class="badge ${returnPct > 10 ? 'badge-bad' : 'badge-good'}">${returnPct}%</span></td>
+                        <td>KWD ${stat.sentKWD.toFixed(3)}</td>
+                        <td>KWD ${stat.retKWD.toFixed(3)}</td>
+                        <td>KWD ${soldAmount.toFixed(3)}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function exportReturnsByDate() {
+            const returns = savedReturnsDatabase;
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(returns);
+            XLSX.utils.book_append_sheet(wb, ws, "Returns");
+            XLSX.writeFile(wb, `Returns_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+
+        function exportSalesByDate() {
+            const sales = salesDatabase;
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(sales);
+            XLSX.utils.book_append_sheet(wb, ws, "Sales");
+            XLSX.writeFile(wb, `Sales_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+
+        function exportFinanceForm() {
+            const returns = savedReturnsDatabase;
+            const financeData = returns.map(r => ({
+                "Return Date": r.returnDate,
+                "Invoice No": r.invoiceNo,
+                "Brand": r.brand,
+                "Branch": r.branch,
+                "Item": r.itemName,
+                "Qty": r.qty,
+                "Unit Price (KWD)": r.unitPrice.toFixed(3),
+                "Total Return (KWD)": r.itemTotal.toFixed(3),
+                "Reason": r.reason,
+                "Driver": r.driver
+            }));
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(financeData);
+            XLSX.utils.book_append_sheet(wb, ws, "Finance Report");
+            XLSX.writeFile(wb, `Finance_Return_Form_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+
+        function renderLateSOAReport() {
+            // Placeholder for SOA tracking
+            document.getElementById('soaPendingCount').textContent = "0";
+            document.getElementById('soaOverdueAmount').textContent = "KWD 0.000";
         }
     </script>
 </body>
