@@ -161,8 +161,8 @@
     </div>
 
     <script>
-        // REPLACE THIS URL WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
-        const GOOGLE_SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE";
+        // PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE:
+        const GOOGLE_SCRIPT_URL = "YOUR_DEPLOYED_WEB_APP_URL_HERE";
 
         const userDatabase = {
             "shahbaz": { name: "Shahbaz", pass: "1234", role: "driver" },
@@ -421,6 +421,13 @@
             });
 
             updateItemsUI();
+            
+            // Clear item-specific inputs for easy next item addition
+            document.getElementById('itemName').value = "";
+            document.getElementById('unitPrice').value = "";
+            document.getElementById('qty').value = "1";
+            document.getElementById('manualBarcode').value = "";
+            document.getElementById('prodDateInput').value = "";
         }
 
         function updateItemsUI() {
@@ -453,6 +460,10 @@
                 return;
             }
 
+            const saveBtn = document.getElementById('saveInvoiceBtn');
+            saveBtn.disabled = true;
+            saveBtn.innerText = "Saving Invoice...";
+
             const payload = currentInvoiceItems.map(item => ({
                 entryDate: item.entryDate,
                 returnDate: item.returnDate,
@@ -474,11 +485,45 @@
                 mode: "no-cors",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
-            }).then(() => {
+            })
+            .then(() => {
                 alert("Invoice Saved Successfully!");
-                currentInvoiceItems = [];
-                updateItemsUI();
+                resetFormForNextInvoice();
+            })
+            .catch((error) => {
+                console.error("Error saving invoice:", error);
+                alert("Failed to save invoice. Please check network connection.");
+            })
+            .finally(() => {
+                saveBtn.disabled = false;
+                saveBtn.innerText = "Finalize & Save Invoice";
             });
+        }
+
+        function resetFormForNextInvoice() {
+            // 1. Clear item array and update UI display
+            currentInvoiceItems = [];
+            updateItemsUI();
+
+            // 2. Clear Header Inputs
+            document.getElementById('invoiceNo').value = "";
+            document.getElementById('brand').value = "";
+            document.getElementById('branch').value = "";
+
+            // 3. Clear Item Detail Inputs
+            document.getElementById('itemName').value = "";
+            document.getElementById('unitPrice').value = "";
+            document.getElementById('qty').value = "1";
+            document.getElementById('manualBarcode').value = "";
+            document.getElementById('prodDateInput').value = "";
+
+            // 4. Reset Default Entry & Return Dates to Today
+            const todayYMD = new Date().toISOString().split('T')[0];
+            document.getElementById('entryDateInput').value = todayYMD;
+            document.getElementById('returnDateInput').value = todayYMD;
+
+            // 5. Place cursor focus automatically in Invoice Number field
+            document.getElementById('invoiceNo').focus();
         }
     </script>
 </body>
