@@ -82,6 +82,11 @@
          
         <div class="card p-3 mb-3">
             <div class="mb-3">
+                <label class="form-label"><b>Return Entry Date:</b></label>
+                <input type="date" id="entryDateInput" class="form-control">
+            </div>
+
+            <div class="mb-3">
                 <label class="form-label"><b>1. Invoice Number:</b></label>
                 <input type="text" id="invoiceNo" class="form-control" placeholder="Enter Invoice Number">
             </div>
@@ -189,6 +194,7 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             const todayYMD = new Date().toISOString().split('T')[0];
+            document.getElementById('entryDateInput').value = todayYMD;
             document.getElementById('returnDateInput').value = todayYMD;
 
             const savedUser = localStorage.getItem('currentUser');
@@ -350,6 +356,12 @@
             });
 
             updateItemsUI();
+            
+            // Clear item input fields for next entry
+            document.getElementById('itemName').value = '';
+            document.getElementById('unitPrice').value = '';
+            document.getElementById('manualBarcode').value = '';
+            document.getElementById('qty').value = '1';
         }
 
         function updateItemsUI() {
@@ -373,16 +385,18 @@
         }
 
         function saveFullInvoice() {
+            const entryDate = parseInputDateToFormattedString(document.getElementById('entryDateInput').value);
             const invoiceNo = document.getElementById('invoiceNo').value;
             const brand = document.getElementById('brand').value;
             const branch = document.getElementById('branch').value;
 
-            if (!invoiceNo || !brand || !branch || currentInvoiceItems.length === 0) {
-                alert("Complete the header info and add items first!");
+            if (!entryDate || !invoiceNo || !brand || !branch || currentInvoiceItems.length === 0) {
+                alert("Complete the header info (including Return Entry Date) and add items first!");
                 return;
             }
 
             const payload = currentInvoiceItems.map(item => ({
+                entryDate: entryDate,
                 returnDate: item.returnDate,
                 invoiceNumber: invoiceNo,
                 brand: brand,
@@ -406,6 +420,10 @@
                 alert("Invoice Saved Successfully!");
                 currentInvoiceItems = [];
                 updateItemsUI();
+                
+                // Reset form fields
+                document.getElementById('invoiceNo').value = '';
+                document.getElementById('branch').value = '';
             });
         }
     </script>
