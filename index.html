@@ -16,7 +16,6 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
-        /* Fullscreen Professional Login Wrapper */
         .login-screen-wrapper {
             position: fixed;
             top: 0;
@@ -37,7 +36,6 @@
             padding: 15px;
         }
 
-        /* Premium frosted glass container card */
         .login-card {
             width: 100%;
             max-width: 400px;
@@ -55,7 +53,6 @@
             letter-spacing: -0.5px;
         }
 
-        /* Mobile-Friendly Custom Dropdown Options */
         .autocomplete-wrapper {
             position: relative;
         }
@@ -181,15 +178,19 @@
                 </select>
             </div>
 
-            <!-- RETURN DATE & PRODUCTION DATE ROW -->
+            <!-- THREE DATES SELECTION -->
             <div class="row mb-3">
-                <div class="col-6">
-                    <label><b>Return Date:</b></label>
-                    <input type="date" id="returnDateHeader" class="form-control">
+                <div class="col-4">
+                    <label><b>Entry Date:</b></label>
+                    <input type="date" id="entryDateInput" class="form-control">
                 </div>
-                <div class="col-6">
-                    <label>Production Date (Sent):</label>
-                    <input type="date" id="prodDate" class="form-control">
+                <div class="col-4">
+                    <label><b>Return Date:</b></label>
+                    <input type="date" id="returnDateInput" class="form-control">
+                </div>
+                <div class="col-4">
+                    <label>Prod. Date:</label>
+                    <input type="date" id="prodDateInput" class="form-control">
                 </div>
             </div>
 
@@ -211,15 +212,13 @@
         <!-- ADMIN ACTIONS -->
         <div id="adminActions" class="card p-3 border-danger d-none">
             <h5 class="text-danger">Admin Actions (Export Data)</h5>
-            <button class="btn btn-dark w-100 mb-2" id="exportBtn" onclick="exportToExcel()">Export All Data to Excel (CSV)</button>
+            <button class="btn btn-success w-100 mb-2" id="exportBtn" onclick="exportToExcel()">📥 Download Google Sheet as Excel (.xlsx)</button>
         </div>
     </div>
 
     <script>
-        // --- GOOGLE SHEETS CENTRAL CLOUD API URL ---
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXTqzRbiBnhNlpNqFokTKeChSvfmOf3Z33tFGVVVBGxfsVhS0wXFyP2FEM0Ba0KoQ/exec";
 
-        // --- AUTHENTICATION & USER MANAGEMENT ---
         const userDatabase = {
             "shahbaz": { name: "Shahbaz", pass: "1234", role: "driver" },
             "abdullah": { name: "Abdullah", pass: "1234", role: "driver" },
@@ -229,14 +228,39 @@
 
         let currentUser = null;
 
-        // Auto-restore login session on refresh
+        // Converts Date Object or string to "29 July 2026" format
+        function formatDateToCustomString(dateObj) {
+            if (!dateObj || isNaN(dateObj.getTime())) return "";
+            const day = dateObj.getDate();
+            const monthNames = ["January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"];
+            const month = monthNames[dateObj.getMonth()];
+            const year = dateObj.getFullYear();
+            return `${day} ${month} ${year}`;
+        }
+
+        // Converts HTML date input string ("YYYY-MM-DD") to "29 July 2026"
+        function parseInputDateToFormattedString(inputVal) {
+            if (!inputVal) return "";
+            const parts = inputVal.split('-');
+            const d = new Date(parts[0], parts[1] - 1, parts[2]);
+            return formatDateToCustomString(d);
+        }
+
+        // Formats time strictly into 12-Hour format (e.g. "01:23:45 PM")
+        function get12HourTimeString() {
+            return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             document.body.addEventListener('click', () => { initAudioContext(); }, { once: false });
             
-            // Set Default Return Date to Today
-            const today = new Date().toISOString().split('T')[0];
-            const returnDateInput = document.getElementById('returnDateHeader');
-            if (returnDateInput) returnDateInput.value = today;
+            const today = new Date();
+            const todayYMD = today.toISOString().split('T')[0];
+
+            // Set default date pickers to today
+            document.getElementById('entryDateInput').value = todayYMD;
+            document.getElementById('returnDateInput').value = todayYMD;
 
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.autocomplete-wrapper')) {
@@ -297,7 +321,6 @@
             document.getElementById('loginSection').classList.remove('d-none');
         }
 
-        // --- AUDIO GENERATOR ---
         let audioCtx = null;
         function initAudioContext() {
             if (!audioCtx) {
@@ -326,7 +349,6 @@
             }
         }
 
-        // --- PRODUCT DATABASE ---
         const productDatabase = {
             "7517846597753": { "name": "Beef Stroganoff with Penne Pasta", "canteenPrice": 1.625, "trolleyPrice": 1.575 },
             "7517846597241": { "name": "Butter Chicken", "canteenPrice": 1.411, "trolleyPrice": 1.361 },
@@ -371,7 +393,6 @@
             "7517846598354": { "name": "Turkey Wrap", "canteenPrice": 0.748, "trolleyPrice": 0.748 }
         };
 
-        // --- BRANCHES DATABASE ---
         const branchDatabase = {
             "Canteen": [
                 "Waha (Canteen)", "Zain Headquater (Canteen)", "Ministry of Electricity and Water Subhan (Canteen)",
@@ -412,7 +433,6 @@
             document.getElementById('branchSuggestions').style.display = "none";
         }
 
-        // --- CUSTOM AUTOCOMPLETE FOR BRANCHES ---
         function filterBranchOptions() {
             const brand = document.getElementById('brand').value;
             const inputVal = document.getElementById('branch').value.toLowerCase();
@@ -451,7 +471,6 @@
             }
         }
 
-        // --- CUSTOM AUTOCOMPLETE FOR ITEMS ---
         function filterItemOptions() {
             const inputVal = document.getElementById('itemName').value.toLowerCase();
             const suggestionsContainer = document.getElementById('itemSuggestions');
@@ -502,7 +521,6 @@
             }
         }
 
-        // --- SCANNER LOGIC ---
         function initScanner() {
             if (!html5QrcodeScanner) {
                 html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 25, qrbox: 250 });
@@ -546,7 +564,7 @@
             document.getElementById('manualBarcode').value = "";
             document.getElementById('qty').value = "1";
             document.getElementById('returnReason').value = "Expired";
-            document.getElementById('prodDate').value = "";
+            document.getElementById('prodDateInput').value = "";
         }
 
         function addReturnItem() {
@@ -554,11 +572,13 @@
             const price = document.getElementById('unitPrice').value;
             const qty = document.getElementById('qty').value;
             const reason = document.getElementById('returnReason').value;
-            const prodDate = document.getElementById('prodDate').value;
-            const retDate = document.getElementById('returnDateHeader').value;
+            
+            const entryDateFormatted = parseInputDateToFormattedString(document.getElementById('entryDateInput').value);
+            const retDateFormatted = parseInputDateToFormattedString(document.getElementById('returnDateInput').value);
+            const prodDateFormatted = parseInputDateToFormattedString(document.getElementById('prodDateInput').value);
 
-            if (!name || !price || !qty || !prodDate || !retDate) {
-                alert("Please select/scan a valid item, check price/qty, select Return Date, and provide a production date.");
+            if (!name || !price || !qty || !entryDateFormatted || !retDateFormatted || !prodDateFormatted) {
+                alert("Please select/scan a valid item, check price/qty, and ensure all dates (Entry, Return, Production) are picked.");
                 return;
             }
 
@@ -567,8 +587,9 @@
                 price: parseFloat(price), 
                 qty: parseInt(qty), 
                 reason: reason,
-                prodDate,
-                returnDate: retDate
+                entryDate: entryDateFormatted,
+                returnDate: retDateFormatted,
+                prodDate: prodDateFormatted
             };
             
             currentInvoiceItems.push(itemData);
@@ -590,7 +611,11 @@
                 list.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">
                     <div>
                         <b>${item.name}</b><br>
-                        <small class="text-muted">Ret Date: ${item.returnDate} | Prod Date: ${item.prodDate} | Qty: ${item.qty}<br>Reason: <b class="text-dark">${item.reason}</b> @ KWD ${item.price.toFixed(3)}</small>
+                        <small class="text-muted">
+                            Entry: <b>${item.entryDate}</b> | Ret Date: <b>${item.returnDate}</b><br>
+                            Prod Date: <b>${item.prodDate}</b> | Qty: ${item.qty}<br>
+                            Reason: <b class="text-dark">${item.reason}</b> @ KWD ${item.price.toFixed(3)}
+                        </small>
                     </div>
                     <div class="text-end">
                         <span><b>KWD ${totalItemPrice.toFixed(3)}</b></span><br>
@@ -607,7 +632,6 @@
             updateItemsUI();
         }
 
-        // --- CENTRAL CLOUD UPLOAD VIA GOOGLE APPS SCRIPT ---
         function saveFullInvoice() {
             const invoiceNo = document.getElementById('invoiceNo').value;
             const brand = document.getElementById('brand').value;
@@ -623,12 +647,12 @@
             saveBtn.textContent = "Uploading Data to Cloud...";
 
             let payload = [];
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString('en-US', { hour12: true });
+            const timeStr = get12HourTimeString(); // Explicit 12-Hour format (e.g., 01:23:45 PM)
 
             currentInvoiceItems.forEach(item => {
                 payload.push({
                     driverName: currentUser ? currentUser.name : "Unknown",
+                    entryDate: item.entryDate,
                     returnDate: item.returnDate,
                     productionDate: item.prodDate,
                     scanTime: timeStr,
@@ -667,6 +691,31 @@
                 saveBtn.disabled = false;
                 saveBtn.textContent = "Finalize & Save Invoice";
             });
+        }
+
+        function exportToExcel() {
+            const exportBtn = document.getElementById('exportBtn');
+            exportBtn.disabled = true;
+            exportBtn.textContent = "Connecting to Google Sheet...";
+
+            fetch(GOOGLE_SCRIPT_URL)
+                .then(response => response.json())
+                .then(res => {
+                    if (res && res.spreadsheetId) {
+                        const downloadUrl = `https://docs.google.com/spreadsheets/d/${res.spreadsheetId}/export?format=xlsx`;
+                        window.open(downloadUrl, '_blank');
+                    } else {
+                        alert("Could not retrieve spreadsheet ID. Make sure Google Apps Script is updated.");
+                    }
+                })
+                .catch(err => {
+                    console.error("Export Error:", err);
+                    alert("Error exporting Excel file. Check console for details.");
+                })
+                .finally(() => {
+                    exportBtn.disabled = false;
+                    exportBtn.textContent = "📥 Download Google Sheet as Excel (.xlsx)";
+                });
         }
     </script>
 </body>
