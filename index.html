@@ -1,80 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sales & Return Admin Dashboard</title>
-    <!-- Bootstrap 5 CSS -->
+    <title>Offline Return Collector</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Scanner Library -->
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <!-- SheetJS for Reading/Exporting Excel files -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- Chart.js for Visual Graphs -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <style>
-        :root {
-            --bg-main: #f8fafc;
-            --nav-bg: #0f172a;
-            --card-border: #e2e8f0;
-            --primary-accent: #2563eb;
-        }
-
         body { 
-            background-color: var(--bg-main);
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            color: #334155;
+            padding: 20px 10px; 
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
             min-height: 100vh;
+            color: #333;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
-        /* LOGIN SCREEN */
         .login-screen-wrapper {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            background-color: #111827;
             display: flex; align-items: center; justify-content: center;
             z-index: 9999; padding: 15px;
         }
 
         .login-card {
             width: 100%; max-width: 400px;
-            background: #ffffff;
-            border-radius: 16px; padding: 32px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px; padding: 30px;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
         }
 
-        /* PROFESSIONAL DASHBOARD STYLING */
-        .dash-card {
-            background: #ffffff;
-            border: 1px solid var(--card-border);
-            border-radius: 12px;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-            padding: 24px;
-            margin-bottom: 24px;
-        }
-
-        .kpi-card {
-            border-radius: 12px;
-            padding: 20px;
-            color: #ffffff;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        .kpi-purple { background: linear-gradient(135deg, #6366f1, #4f46e5); }
-        .kpi-red { background: linear-gradient(135deg, #f43f5e, #e11d48); }
-        .kpi-emerald { background: linear-gradient(135deg, #10b981, #059669); }
-        .kpi-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-
-        .kpi-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.9; }
-        .kpi-value { font-size: 1.8rem; font-weight: 800; margin: 8px 0; }
-        .kpi-sub { font-size: 0.85rem; opacity: 0.85; }
-
-        /* AUTOCOMPLETE STYLES */
         .autocomplete-wrapper { position: relative; }
+
         .autocomplete-suggestions {
             position: absolute; top: 100%; left: 0; right: 0;
             max-height: 200px; overflow-y: auto;
@@ -82,328 +40,138 @@
             z-index: 9999; display: none;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
+
         .autocomplete-suggestion {
             padding: 10px 12px; cursor: pointer;
             border-bottom: 1px solid #f1f5f9; font-size: 0.95rem;
         }
-        .autocomplete-suggestion:hover { background-color: #2563eb; color: #ffffff; }
 
-        /* DRIVER INTERFACE */
-        .driver-bg { background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); min-height: 100vh; padding: 20px 10px; }
-        
-        /* TABLE STYLING */
-        .custom-table th { background-color: #0f172a !important; color: #ffffff !important; font-weight: 600; font-size: 0.85rem; }
-        .custom-table td { font-size: 0.9rem; vertical-align: middle; }
+        .autocomplete-suggestion:hover {
+            background-color: #0e7490; color: #ffffff;
+        }
     </style>
 </head>
 <body>
 
     <!-- LOGIN SECTION -->
     <div id="loginSection" class="login-screen-wrapper">
-        <div class="card login-card">
-            <div class="text-center mb-4">
-                <i class="fa-solid fa-chart-line text-primary fs-1 mb-2"></i>
-                <h3 class="fw-bold text-dark m-0">System Portal</h3>
-                <p class="text-muted small">Log in as Driver or Admin (Amir)</p>
-            </div>
+        <div class="card shadow login-card">
+            <h3 class="text-center mb-1">Return Collector</h3>
+            <p class="text-center text-muted small mb-4">Please log in to manage return invoices</p>
             
             <div class="mb-3">
-                <label class="form-label text-secondary small fw-bold">User ID / Username:</label>
-                <input type="text" id="loginId" class="form-control" placeholder="e.g. admin or shahbaz">
+                <label class="form-label text-secondary small"><b>User ID (Name):</b></label>
+                <input type="text" id="loginId" class="form-control form-control-lg" placeholder="e.g. shahbaz">
             </div>
             <div class="mb-4">
-                <label class="form-label text-secondary small fw-bold">Password:</label>
-                <input type="password" id="loginPassword" class="form-control" placeholder="••••••••">
+                <label class="form-label text-secondary small"><b>Password:</b></label>
+                <input type="password" id="loginPassword" class="form-control form-control-lg" placeholder="••••••••">
             </div>
-            <button class="btn btn-primary w-100 fw-bold py-2" onclick="handleLogin()">Sign In</button>
+            <button class="btn btn-primary btn-lg w-100 shadow-sm" onclick="handleLogin()" style="background: #0e7490; border: none;">Sign In</button>
         </div>
     </div>
 
-    <!-- DRIVER MOBILE RETURN INTERFACE -->
-    <div id="driverContainer" class="driver-bg d-none">
-        <div class="container" style="max-width: 600px;">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-light fs-5">Driver: <b id="displayDriverName" class="text-warning"></b></span>
-                <button class="btn btn-outline-light btn-sm" onclick="logout()"><i class="fa-solid fa-right-from-bracket me-1"></i>Logout</button>
+    <!-- MAIN APP CONTAINER -->
+    <div id="appContainer" class="container d-none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="text-light fs-5">Driver: <b id="displayDriverName" class="text-warning"></b></span>
+            <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
+        </div>
+
+        <h2 class="text-center my-3 text-light">Return Invoice Collector</h2>
+         
+        <div class="card p-3 mb-3">
+            <div class="mb-3">
+                <label class="form-label"><b>1. Invoice Number:</b></label>
+                <input type="text" id="invoiceNo" class="form-control" placeholder="Enter Invoice Number">
             </div>
 
-            <h3 class="text-center my-3 text-light fw-bold">Return Invoice Collector</h3>
-             
-            <div class="card p-3 mb-3 shadow-sm rounded-3">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">1. Invoice Number:</label>
-                    <input type="text" id="invoiceNo" class="form-control" placeholder="Enter Invoice Number">
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label fw-bold">2. Select Brand:</label>
-                    <select id="brand" class="form-select" onchange="onBrandChange()">
-                        <option value="">-- Choose Brand --</option>
-                        <option value="Canteen">Canteen</option>
-                        <option value="Trolley">Trolley</option>
-                    </select>
-                </div>
-
-                <div class="mb-3 autocomplete-wrapper">
-                    <label class="form-label fw-bold">3. Search/Select Branch:</label>
-                    <input type="text" id="branch" class="form-control" placeholder="Type to search branch..." oninput="filterBranchOptions()" onfocus="filterBranchOptions()" autocomplete="off">
-                    <div id="branchSuggestions" class="autocomplete-suggestions"></div>
-                </div>
+            <div class="mb-3">
+                <label class="form-label"><b>2. Select Brand:</b></label>
+                <select id="brand" class="form-select" onchange="onBrandChange()">
+                    <option value="">-- Choose Brand --</option>
+                    <option value="Canteen">Canteen</option>
+                    <option value="Trolley">Trolley</option>
+                </select>
             </div>
 
-            <div class="card p-3 mb-3 text-center shadow-sm rounded-3">
-                <h5 class="fw-bold"><i class="fa-solid fa-qrcode me-2"></i>Fast Scan Barcode</h5>
-                <div id="reader"></div>
-                <input type="text" id="manualBarcode" class="form-control mt-2" placeholder="Or enter barcode manually">
-                <button class="btn btn-secondary btn-sm mt-2" onclick="lookupBarcode(document.getElementById('manualBarcode').value)">Lookup Barcode</button>
-            </div>
-
-            <div class="card p-3 mb-3 shadow-sm rounded-3">
-                <h5 class="fw-bold">Item Details</h5>
-                <div class="mb-2 autocomplete-wrapper">
-                    <label class="form-label small fw-bold">Item Name:</label>
-                    <input type="text" id="itemName" class="form-control" placeholder="Type to search item..." oninput="filterItemOptions()" onfocus="filterItemOptions()" autocomplete="off">
-                    <div id="itemSuggestions" class="autocomplete-suggestions"></div>
-                </div>
-
-                <div class="row">
-                    <div class="col-6 mb-2">
-                        <label class="form-label small fw-bold">Unit Price:</label>
-                        <input type="number" id="unitPrice" step="0.001" class="form-control" readonly>
-                    </div>
-                    <div class="col-6 mb-2">
-                        <label class="form-label small fw-bold">Qty:</label>
-                        <input type="number" id="qty" class="form-control" value="1" min="1">
-                    </div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-12 col-md-4 mb-2">
-                        <label class="form-label small fw-bold">Entry Date:</label>
-                        <input type="date" id="entryDateInput" class="form-control">
-                    </div>
-                    <div class="col-12 col-md-4 mb-2">
-                        <label class="form-label small fw-bold">Return Date:</label>
-                        <input type="date" id="returnDateInput" class="form-control">
-                    </div>
-                    <div class="col-12 col-md-4 mb-2">
-                        <label class="form-label small fw-bold">Production Date:</label>
-                        <input type="date" id="prodDateInput" class="form-control">
-                    </div>
-                </div>
-
-                <button class="btn btn-success w-100 fw-bold" onclick="addReturnItem()"><i class="fa-solid fa-plus me-1"></i>Add Item to Invoice</button>
-            </div>
-
-            <div class="card p-3 mb-3 shadow-sm rounded-3">
-                <h5 class="fw-bold">Current Invoice Items</h5>
-                <ul id="itemList" class="list-group mb-3"></ul>
-                
-                <div class="p-3 mb-3 bg-light border rounded d-flex justify-content-between align-items-center">
-                    <span class="fs-5 text-dark"><b>Invoice Total:</b></span>
-                    <span class="fs-4 text-success"><b>KWD <span id="invoiceTotalDisplay">0.000</span></b></span>
-                </div>
-
-                <button class="btn btn-primary w-100 fw-bold py-2" id="saveInvoiceBtn" onclick="saveFullInvoice()"><i class="fa-solid fa-paper-plane me-1"></i>Finalize & Save Invoice</button>
+            <div class="mb-3 autocomplete-wrapper">
+                <label class="form-label"><b>3. Search/Select Branch:</b></label>
+                <input type="text" id="branch" class="form-control" placeholder="Type to search branch..." oninput="filterBranchOptions()" onfocus="filterBranchOptions()" autocomplete="off">
+                <div id="branchSuggestions" class="autocomplete-suggestions"></div>
             </div>
         </div>
-    </div>
 
-    <!-- ADMIN / AMIR MANAGEMENT DASHBOARD -->
-    <div id="adminContainer" class="d-none">
-        <nav class="navbar navbar-dark bg-dark px-4 shadow-sm">
-            <a class="navbar-brand fw-bold" href="#"><i class="fa-solid fa-chart-column text-primary me-2"></i> Executive Dashboard</a>
-            <div class="ms-auto d-flex align-items-center gap-3">
-                <span class="text-light">Logged as: <b id="displayAdminName" class="text-info">Amir Khan</b></span>
-                <button class="btn btn-outline-light btn-sm" onclick="logout()"><i class="fa-solid fa-right-from-bracket me-1"></i>Logout</button>
+        <div class="card p-3 mb-3 text-center">
+            <h5><b>4. Fast Scan Barcode</b></h5>
+            <div id="reader"></div>
+            <input type="text" id="manualBarcode" class="form-control mt-2" placeholder="Or enter barcode manually">
+            <button class="btn btn-secondary btn-sm mt-2" onclick="lookupBarcode(document.getElementById('manualBarcode').value)">Lookup Manual Barcode</button>
+        </div>
+
+        <div class="card p-3 mb-3">
+            <h5><b>Item Details</b></h5>
+            <div class="mb-2 autocomplete-wrapper">
+                <label>Item Name:</label>
+                <input type="text" id="itemName" class="form-control" placeholder="Type to search item..." oninput="filterItemOptions()" onfocus="filterItemOptions()" autocomplete="off">
+                <div id="itemSuggestions" class="autocomplete-suggestions"></div>
             </div>
-        </nav>
 
-        <div class="container-fluid p-4">
+            <div class="row">
+                <div class="col-6 mb-2">
+                    <label>Unit Price:</label>
+                    <input type="number" id="unitPrice" step="0.001" class="form-control" readonly>
+                </div>
+                <div class="col-6 mb-2">
+                    <label>Qty:</label>
+                    <input type="number" id="qty" class="form-control" value="1" min="1">
+                </div>
+            </div>
+
+            <!-- 1. ENTRY DATE | 2. RETURN DATE | 3. PRODUCTION DATE -->
+            <div class="row mb-3">
+                <div class="col-md-4 col-12 mb-2">
+                    <label><b>Entry Date:</b></label>
+                    <input type="date" id="entryDateInput" class="form-control">
+                </div>
+                <div class="col-md-4 col-12 mb-2">
+                    <label><b>Return Date:</b></label>
+                    <input type="date" id="returnDateInput" class="form-control">
+                </div>
+                <div class="col-md-4 col-12 mb-2">
+                    <label><b>Production Date:</b></label>
+                    <input type="date" id="prodDateInput" class="form-control">
+                </div>
+            </div>
+
+            <button class="btn btn-success w-100" onclick="addReturnItem()">Add Item to Invoice</button>
+        </div>
+
+        <div class="card p-3 mb-3">
+            <h5>Current Invoice Items</h5>
+            <ul id="itemList" class="list-group mb-3"></ul>
             
-            <!-- CONTROLS & ACTION HEADER -->
-            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-                <div>
-                    <h3 class="fw-bold m-0 text-dark">Sales & Return Overview</h3>
-                    <p class="text-muted small m-0">Monitor performance, track return ratios, and export executive reports</p>
-                </div>
-
-                <div class="d-flex flex-wrap gap-2">
-                    <button class="btn btn-success fw-bold btn-sm shadow-sm" onclick="triggerSaleUpload()"><i class="fa-solid fa-file-excel me-1"></i> Upload Sale Excel</button>
-                    <input type="file" id="saleFileInput" class="d-none" accept=".xlsx, .xls, .csv" onchange="handleSaleFileUpload(event)">
-                    
-                    <button class="btn btn-outline-secondary btn-sm" onclick="exportDataToExcel('sales')"><i class="fa-solid fa-download me-1"></i> Export Sales</button>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="exportDataToExcel('returns')"><i class="fa-solid fa-download me-1"></i> Export Returns</button>
-                    <button class="btn btn-primary btn-sm fw-bold" onclick="exportSummaryToExcel()"><i class="fa-solid fa-file-export me-1"></i> Download End-Month Summary</button>
-                </div>
+            <div class="p-3 mb-3 bg-light border rounded d-flex justify-content-between align-items-center">
+                <span class="fs-5 text-dark"><b>Invoice Total:</b></span>
+                <span class="fs-4 text-success"><b>KWD <span id="invoiceTotalDisplay">0.000</span></b></span>
             </div>
 
-            <!-- KPI METRICS -->
-            <div class="row g-3 mb-4">
-                <div class="col-md-3 col-sm-6">
-                    <div class="kpi-card kpi-purple">
-                        <div class="kpi-title">Total Sent Qty</div>
-                        <div class="kpi-value" id="kpiSentQty">0</div>
-                        <div class="kpi-sub">Sent Amt: KWD <span id="kpiSentAmt">0.000</span></div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-sm-6">
-                    <div class="kpi-card kpi-red">
-                        <div class="kpi-title">Total Return Qty</div>
-                        <div class="kpi-value" id="kpiReturnQty">0</div>
-                        <div class="kpi-sub">Return Amt: KWD <span id="kpiReturnAmt">0.000</span></div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-sm-6">
-                    <div class="kpi-card kpi-emerald">
-                        <div class="kpi-title">Total Sold Qty</div>
-                        <div class="kpi-value" id="kpiSoldQty">0</div>
-                        <div class="kpi-sub">Sold Amt: KWD <span id="kpiSoldAmt">0.000</span></div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-sm-6">
-                    <div class="kpi-card kpi-blue">
-                        <div class="kpi-title">Return % Ratio</div>
-                        <div class="kpi-value" id="kpiReturnRate">0.00%</div>
-                        <div class="kpi-sub">Return vs Sent Ratio</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SLICERS & GRAPH -->
-            <div class="row g-3 mb-4">
-                <div class="col-lg-3 col-md-4">
-                    <div class="dash-card h-100">
-                        <h6 class="fw-bold mb-3"><i class="fa-solid fa-filter me-2 text-primary"></i>Data Slicer</h6>
-                        <div class="mb-3">
-                            <label class="form-label small text-muted fw-bold">From Date:</label>
-                            <input type="date" id="filterStartDate" class="form-control form-control-sm" onchange="renderReports()">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small text-muted fw-bold">To Date:</label>
-                            <input type="date" id="filterEndDate" class="form-control form-control-sm" onchange="renderReports()">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small text-muted fw-bold">Filter Branch:</label>
-                            <select id="filterBranchSelect" class="form-select form-select-sm" onchange="renderReports()">
-                                <option value="ALL">All Branches</option>
-                            </select>
-                        </div>
-                        <button class="btn btn-light border btn-sm w-100 fw-bold" onclick="resetFilters()">Reset Slicers</button>
-                    </div>
-                </div>
-                <div class="col-lg-9 col-md-8">
-                    <div class="dash-card h-100">
-                        <h6 class="fw-bold mb-3"><i class="fa-solid fa-chart-bar me-2 text-primary"></i>Sales vs Return Analytics</h6>
-                        <div style="height: 230px;">
-                            <canvas id="overviewChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TABBED REPORTS -->
-            <ul class="nav nav-tabs mb-3 fw-bold" id="reportTabs" role="tablist">
-                <li class="nav-item">
-                    <button class="nav-link active" id="branch-tab" data-bs-toggle="tab" data-bs-target="#branch-pane"><i class="fa-solid fa-store me-1"></i> Branch Performance</button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link" id="item-tab" data-bs-toggle="tab" data-bs-target="#item-pane"><i class="fa-solid fa-box me-1"></i> Item Performance</button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary-pane"><i class="fa-solid fa-table me-1"></i> Comprehensive Summary</button>
-                </li>
-            </ul>
-
-            <div class="tab-content">
-                <!-- 1. BRANCH REPORT -->
-                <div class="tab-pane fade show active" id="branch-pane">
-                    <div class="dash-card">
-                        <div class="table-responsive">
-                            <table class="table table-hover custom-table align-middle border">
-                                <thead>
-                                    <tr>
-                                        <th>Branch Name</th>
-                                        <th>Sent Qty</th>
-                                        <th>Return Qty</th>
-                                        <th>Return %</th>
-                                        <th>Sent Amt (KWD)</th>
-                                        <th>Return Amt (KWD)</th>
-                                        <th>Sold Amt (KWD)</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="branchReportBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 2. ITEM REPORT -->
-                <div class="tab-pane fade" id="item-pane">
-                    <div class="dash-card">
-                        <div class="table-responsive">
-                            <table class="table table-hover custom-table align-middle border">
-                                <thead>
-                                    <tr>
-                                        <th>Item Name</th>
-                                        <th>Sent Qty</th>
-                                        <th>Return Qty</th>
-                                        <th>Sold Qty</th>
-                                        <th>Return %</th>
-                                        <th>Sent Amt (KWD)</th>
-                                        <th>Return Amt (KWD)</th>
-                                        <th>Sold Amt (KWD)</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="itemReportBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 3. COMPREHENSIVE SUMMARY -->
-                <div class="tab-pane fade" id="summary-pane">
-                    <div class="dash-card">
-                        <div class="table-responsive">
-                            <table class="table table-hover custom-table align-middle border">
-                                <thead>
-                                    <tr>
-                                        <th>Branch Name</th>
-                                        <th>Item Name</th>
-                                        <th>Sent Qty</th>
-                                        <th>Sold Qty</th>
-                                        <th>Return Qty</th>
-                                        <th>Return %</th>
-                                        <th>Sent Amt (KWD)</th>
-                                        <th>Return Amt (KWD)</th>
-                                        <th>Sold Amt (KWD)</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="summaryReportBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
+            <button class="btn btn-primary w-100" id="saveInvoiceBtn" onclick="saveFullInvoice()">Finalize & Save Invoice</button>
         </div>
     </div>
-
-    <!-- JS Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw-wOcJdqMu4hghzzYWpaQXA_5uTap4-YZtl6etce9kswiMDRiETWnSemobJdvd-Gvd/exec";
+        // PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE:
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzmoI8SG0MDhgl-o9jQGqHKjWi8jpNNVUWicUXEoKTdv2ZS9lwwGnPjByFD5B23_J8E/exec";
 
         const userDatabase = {
             "shahbaz": { name: "Shahbaz", pass: "1234", role: "driver" },
             "abdullah": { name: "Abdullah", pass: "1234", role: "driver" },
             "rashid": { name: "Rashid", pass: "1234", role: "driver" },
-            "admin": { name: "Amir Khan", pass: "admin123", role: "admin" },
-            "amir": { name: "Amir Khan", pass: "admin123", role: "admin" }
+            "admin": { name: "Amir khan", pass: "admin123", role: "admin" }
         };
 
+        // --- PRODUCT DATABASE ---
         const productDatabase = {
             "7517846597753": { "name": "Beef Stroganoff with Penne Pasta", "canteenPrice": 1.625, "trolleyPrice": 1.575 },
             "7517846597241": { "name": "Butter Chicken", "canteenPrice": 1.411, "trolleyPrice": 1.361 },
@@ -412,23 +180,100 @@
             "7517846598392": { "name": "Chicken Shish Taouk Wrap", "canteenPrice": 0.78, "trolleyPrice": 0.78 },
             "7517846598231": { "name": "Chipotle Egg Burger", "canteenPrice": 0.813, "trolleyPrice": 0.813 },
             "7517846597180": { "name": "Classic Beef Burger", "canteenPrice": 1.294, "trolleyPrice": 1.294 },
-            "7517846598330": { "name": "Creamy Chicken Caesar Wrap", "canteenPrice": 0.748, "trolleyPrice": 0.748 }
+            "7517846598330": { "name": "Creamy Chicken Caesar Wrap", "canteenPrice": 0.748, "trolleyPrice": 0.748 },
+            "7517846598286": { "name": "Creamy Shrimp Caesar Salad", "canteenPrice": 1.347, "trolleyPrice": 1.347 },
+            "7517846598163": { "name": "Egg & Turkey Croissant", "canteenPrice": 0.813, "trolleyPrice": 0.813 },
+            "7517846598361": { "name": "Egg Wrap", "canteenPrice": 0.585, "trolleyPrice": 0.585 },
+            "7517846598378": { "name": "Falafel Wrap", "canteenPrice": 0.423, "trolleyPrice": 0.423 },
+            "7517846598309": { "name": "Feta Spinach Strawberry Salad", "canteenPrice": 0.618, "trolleyPrice": 0.618 },
+            "7517846597333": { "name": "Grilled Halloumi Sandwich", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+            "5904223118410": { "name": "Halloumi Sandwich", "canteenPrice": 0.618, "trolleyPrice": 0.618 },
+            "7517846598347": { "name": "Halloumi Wrap", "canteenPrice": 0.618, "trolleyPrice": 0.618 },
+            "7517846598385": { "name": "Labna Potato Wrap", "canteenPrice": 0.455, "trolleyPrice": 0.455 },
+            "5904223218417": { "name": "Labna Sandwich", "canteenPrice": 0.553, "trolleyPrice": 0.553 },
+            "7517846598293": { "name": "Maple Kale Salad", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+            "5904293218454": { "name": "Margherita Pizza", "canteenPrice": 0.585, "trolleyPrice": 0.585 },
+            "7517846598255": { "name": "Marinara Chicken Sandwich", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+            "7517846597906": { "name": "Mexican Nacho Salad OI", "canteenPrice": 1.008, "trolleyPrice": 0.958 },
+            "7517846598156": { "name": "Mix Cheese Croissant", "canteenPrice": 0.748, "trolleyPrice": 0.748 },
+            "5904223219452": { "name": "Mixed Cheese Pizza", "canteenPrice": 0.644, "trolleyPrice": 0.644 },
+            "7517846598187": { "name": "Mozzarella Melt", "canteenPrice": 0.65, "trolleyPrice": 0.65 },
+            "7517846598316": { "name": "Numou French Salad", "canteenPrice": 0.715, "trolleyPrice": 0.715 },
+            "7517846597975": { "name": "Numou Mini Cookies (5 pieces)", "canteenPrice": 0.65, "trolleyPrice": 0.65 },
+            "7517846598422": { "name": "Qaimar & Asal", "canteenPrice": 0.39, "trolleyPrice": 0.39 },
+            "7517846598279": { "name": "Santa Fe Chicken Salad", "canteenPrice": 1.625, "trolleyPrice": 1.51 },
+            "5904223118441": { "name": "Spinach Feta Pizza", "canteenPrice": 0.585, "trolleyPrice": 0.585 },
+            "7517846597678": { "name": "Tapenade Halloumi Sandwich", "canteenPrice": 1.04, "trolleyPrice": 1.04 },
+            "7517846598262": { "name": "Thai Chicken Salad", "canteenPrice": 1.625, "trolleyPrice": 1.38 },
+            "7517846598323": { "name": "Thai Salad Pot", "canteenPrice": 0.78, "trolleyPrice": 0.78 },
+            "5904223218400": { "name": "Turkey Cheddar Croissant", "canteenPrice": 0.644, "trolleyPrice": 0.644 },
+            "7517846598415": { "name": "Turkey Club Sandwich", "canteenPrice": 1.138, "trolleyPrice": 1.138 },
+            "7517846598149": { "name": "Turkey Croissant", "canteenPrice": 0.813, "trolleyPrice": 0.813 },
+            "7517846598224": { "name": "Turkey Melt", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+            "5901234184090": { "name": "Turkey Sandwich", "canteenPrice": 0.618, "trolleyPrice": 0.618 },
+            "7517846598439": { "name": "Turkey with Apricot Jam", "canteenPrice": 0.975, "trolleyPrice": 0.975 },
+            "7517846597630": { "name": "Turkey with Creamy Chutney Wrap", "canteenPrice": 1.203, "trolleyPrice": 1.202 },
+            "7517846598354": { "name": "Turkey Wrap", "canteenPrice": 0.748, "trolleyPrice": 0.748 }
         };
 
+        // --- BRANCHES DATABASE ---
         const branchDatabase = {
-            "Canteen": ["Waha (Canteen)", "Zain Headquater (Canteen)", "Ministry of Electricity and Water Subhan (Canteen)"],
-            "Trolley": ["Jahra - Alfa (TR)", "Oyoon - Oula (TR)", "Sulaibiya (TR)", "Saad Al Abdullah - KNPC (TR)"]
+            "Canteen": [
+                "Waha (Canteen)", "Zain Headquater (Canteen)", "Ministry of Electricity and Water Subhan (Canteen)",
+                "Public Authority of Housing Welfare shuwaikh (Canteen)", "Rihab (Canteen)", "Shuaiba Equate (Canteen)",
+                "Ahmadi Equate (Canteen)", "Awqaf Shuwaikh (Canteen)", "Kuwait University Khaldiya (Canteen)",
+                "Siddque (Canteen)", "Shadadiya KU Engineering (Canteen)", "International University of Kuwait(Canteen)",
+                "Jaber ali Stadium (Canteen)", "Kuwait City - Baitak Tower (Canteen)", "Kuwait City Mazaya tower (Canteen)",
+                "Shaab (Canteen)"
+            ],
+            "Trolley": [
+                "Jahra - Alfa (TR)", "Oyoon - Oula (TR)", "Sulaibiya (TR)", "Saad Al Abdullah - KNPC (TR)",
+                "Shuwaikh - Zain Hospital (TR)", "Zahra - KNPC (TR)", "Shuwaikh - Alfa (TR)", "Ministry of Public Works (TR)",
+                "Abdullah Al Salem (TR)", "Shuwaikh - Zain Head Quarter (TR)", "Abdally KNPC (TR)", "West Shuaiba - Oula (TR)",
+                "Mina Abdullah Alfa - 43 (TR)", "Mubarak Al Kabeer - Oula (TR)", "Ahmedi - Saka - Road 77 (TR)", "Hadiya - Alfa (TR)",
+                "Al Admi Arkan AlKuwait (TR)", "Abu Halifa - Alfa (TR)", "Rahal-Nuwaiseeb (TR)", "Mesayel - Alfa (TR)",
+                "Messila - Oula (TR)", "Sabah Al Salem - Oula 70 (TR)", "Sabah Al Salem Block 3 (TR)", "Sabah Club Qurain Blk 4 (TR)",
+                "Sabah Al Ahmed - KNPC140 (TR)", "Sabah Al Ahmed - KNPC149 (TR)", "Sabah Al Ahmed - KNPC142 (TR)", "Khaldiya - Oula (TR)",
+                "Qurtuba - Oula (TR)", "Hateen - Alfa (TR)", "Kaifan - Kuwait Club (TR)", "Shuhada - Oula (TR)", "Omariya - Oula (TR)",
+                "Abdullah Mubarak (TR)", "Shadadiya - Oula 52 (TR)", "Al Nasser Club (TR)", "Shadadiya - KU College of Admin(Education)   (TR)",
+                "Shadadiya - KU College of Arts (Literacy)   (TR)", "Shadadiya - KU Life Science (TR)", "Bnied Algar - Salam Hospital (TR)",
+                "Salmiya - AL Bidaa (TR)", "Salmiya Alfa (TR)", "Salmiya - Oula Block 10 (TR) - 71", "Salmiya - Oula Block 11 (TR) - 14",
+                "Adan Oula- 1187 (TR)", "Al Arabi Sport Club (TR)", "Bayan - Oula (TR)", "Amiri Hospital (TR)",
+                "Kuwait City - Kipco Tower (TR)", "Shaab - Alfa (TR)", "Mansouriyah - Alfa (TR)", "Daiya - Oula (TR)",
+                "Kuwait City - Baitak Tower (TR)", "Kuwait City - Trolley Ministry Complex (TR)", "Kuwait City - Central Bank of Kuwait (TR)",
+                "Kuwait City - NBK Head Office (TR)", "Jabriya - KU College of Medicine (TR)", "West Mishref - Oula  (TR)",
+                "Marina Crecent (TR)", "Al Arabi Sport Club"
+            ]
         };
-
-        let salesData = JSON.parse(localStorage.getItem('salesData') || '[]');
-        let returnsData = JSON.parse(localStorage.getItem('returnsData') || '[]');
 
         let currentUser = null;
         let currentInvoiceItems = [];
         let html5QrcodeScanner = null;
-        let overviewChartInstance = null;
+
+        function formatDateToCustomString(dateObj) {
+            if (!dateObj || isNaN(dateObj.getTime())) return "";
+            const day = dateObj.getDate();
+            const monthNames = ["January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"];
+            return `${day} ${monthNames[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+        }
+
+        function parseInputDateToFormattedString(inputVal) {
+            if (!inputVal) return "";
+            const parts = inputVal.split('-');
+            const d = new Date(parts[0], parts[1] - 1, parts[2]);
+            return formatDateToCustomString(d);
+        }
+
+        function get12HourTimeString() {
+            return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        }
 
         window.addEventListener('DOMContentLoaded', () => {
+            const todayYMD = new Date().toISOString().split('T')[0];
+            document.getElementById('entryDateInput').value = todayYMD;
+            document.getElementById('returnDateInput').value = todayYMD;
+
             const savedUser = localStorage.getItem('currentUser');
             if (savedUser) {
                 try {
@@ -437,6 +282,13 @@
                 } catch (e) {}
             }
         });
+
+        function applyUserSession(user) {
+            document.getElementById('displayDriverName').textContent = user.name;
+            document.getElementById('loginSection').classList.add('d-none');
+            document.getElementById('appContainer').classList.remove('d-none');
+            initScanner();
+        }
 
         function handleLogin() {
             const idInput = document.getElementById('loginId').value.trim().toLowerCase();
@@ -452,47 +304,11 @@
             }
         }
 
-        function applyUserSession(user) {
-            document.getElementById('loginSection').classList.add('d-none');
-            
-            if (user.role === 'admin') {
-                document.getElementById('adminContainer').classList.remove('d-none');
-                document.getElementById('driverContainer').classList.add('d-none');
-                document.getElementById('displayAdminName').textContent = user.name;
-                populateBranchFilterOptions();
-                renderReports();
-            } else {
-                document.getElementById('driverContainer').classList.remove('d-none');
-                document.getElementById('adminContainer').classList.add('d-none');
-                document.getElementById('displayDriverName').textContent = user.name;
-                initDriverDates();
-                initScanner();
-            }
-        }
-
         function logout() {
             currentUser = null;
             localStorage.removeItem('currentUser');
-            document.getElementById('adminContainer').classList.add('d-none');
-            document.getElementById('driverContainer').classList.add('d-none');
+            document.getElementById('appContainer').classList.add('d-none');
             document.getElementById('loginSection').classList.remove('d-none');
-        }
-
-        /* DRIVER LOGIC */
-        function initDriverDates() {
-            const todayYMD = new Date().toISOString().split('T')[0];
-            document.getElementById('entryDateInput').value = todayYMD;
-            document.getElementById('returnDateInput').value = todayYMD;
-        }
-
-        function initScanner() {
-            if (!html5QrcodeScanner) {
-                html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 20, qrbox: 250 });
-                html5QrcodeScanner.render((text) => {
-                    document.getElementById('manualBarcode').value = text;
-                    lookupBarcode(text);
-                });
-            }
         }
 
         function onBrandChange() {
@@ -559,6 +375,16 @@
             }
         }
 
+        function initScanner() {
+            if (!html5QrcodeScanner) {
+                html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 20, qrbox: 250 });
+                html5QrcodeScanner.render((text) => {
+                    document.getElementById('manualBarcode').value = text;
+                    lookupBarcode(text);
+                });
+            }
+        }
+
         function lookupBarcode(barcode) {
             const brand = document.getElementById('brand').value;
             if (!brand) return alert("Select Brand first!");
@@ -575,12 +401,12 @@
             const name = document.getElementById('itemName').value;
             const price = document.getElementById('unitPrice').value;
             const qty = document.getElementById('qty').value;
-            const entryDate = document.getElementById('entryDateInput').value;
-            const retDate = document.getElementById('returnDateInput').value;
-            const prodDate = document.getElementById('prodDateInput').value;
+            const entryDate = parseInputDateToFormattedString(document.getElementById('entryDateInput').value);
+            const retDate = parseInputDateToFormattedString(document.getElementById('returnDateInput').value);
+            const prodDate = parseInputDateToFormattedString(document.getElementById('prodDateInput').value);
 
-            if (!name || !price || !qty || !entryDate || !retDate) {
-                alert("Please complete required item detail fields!");
+            if (!name || !price || !qty || !entryDate || !retDate || !prodDate) {
+                alert("Please fill in all item details and all dates (Entry, Return, Production)!");
                 return;
             }
 
@@ -596,6 +422,7 @@
 
             updateItemsUI();
             
+            // Clear item-specific inputs for easy next item addition
             document.getElementById('itemName').value = "";
             document.getElementById('unitPrice').value = "";
             document.getElementById('qty').value = "1";
@@ -608,13 +435,13 @@
             list.innerHTML = "";
             let total = 0;
 
-            currentInvoiceItems.forEach((item) => {
+            currentInvoiceItems.forEach((item, index) => {
                 const subtotal = item.price * item.qty;
                 total += subtotal;
                 list.innerHTML += `<li class="list-group-item d-flex justify-content-between">
                     <div>
                         <b>${item.name}</b><br>
-                        <small class="text-muted">Return Date: ${item.returnDate} | Qty: ${item.qty}</small>
+                        <small class="text-muted">Entry: ${item.entryDate} | Ret: ${item.returnDate} | Prod: ${item.prodDate} | Qty: ${item.qty}</small>
                     </div>
                     <div><b>KWD ${subtotal.toFixed(3)}</b></div>
                 </li>`;
@@ -629,7 +456,7 @@
             const branch = document.getElementById('branch').value;
 
             if (!invoiceNo || !brand || !branch || currentInvoiceItems.length === 0) {
-                alert("Please complete invoice header details and add items!");
+                alert("Complete the header info and add items first!");
                 return;
             }
 
@@ -647,422 +474,56 @@
                 itemName: item.name,
                 unitPrice: item.price,
                 qty: item.qty,
-                totalPrice: (item.price * item.qty),
+                totalPrice: (item.price * item.qty).toFixed(3),
                 productionDate: item.prodDate,
+                scanTime: get12HourTimeString(),
                 driverName: currentUser ? currentUser.name : "Unknown"
             }));
-
-            returnsData.push(...payload);
-            localStorage.setItem('returnsData', JSON.stringify(returnsData));
 
             fetch(GOOGLE_SCRIPT_URL, {
                 method: "POST",
                 mode: "no-cors",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
-            }).finally(() => {
+            })
+            .then(() => {
                 alert("Invoice Saved Successfully!");
-                currentInvoiceItems = [];
-                updateItemsUI();
-                document.getElementById('invoiceNo').value = "";
+                resetFormForNextInvoice();
+            })
+            .catch((error) => {
+                console.error("Error saving invoice:", error);
+                alert("Failed to save invoice. Please check network connection.");
+            })
+            .finally(() => {
                 saveBtn.disabled = false;
                 saveBtn.innerText = "Finalize & Save Invoice";
             });
         }
 
-        /* EXCEL PARSING & ULTRA-FLEXIBLE ROW MAPPING */
-        function triggerSaleUpload() {
-            document.getElementById('saleFileInput').click();
-        }
+        function resetFormForNextInvoice() {
+            // 1. Clear item array and update UI display
+            currentInvoiceItems = [];
+            updateItemsUI();
 
-        function handleSaleFileUpload(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+            // 2. Clear Header Inputs
+            document.getElementById('invoiceNo').value = "";
+            document.getElementById('brand').value = "";
+            document.getElementById('branch').value = "";
 
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                try {
-                    const data = new Uint8Array(evt.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    const rawJson = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+            // 3. Clear Item Detail Inputs
+            document.getElementById('itemName').value = "";
+            document.getElementById('unitPrice').value = "";
+            document.getElementById('qty').value = "1";
+            document.getElementById('manualBarcode').value = "";
+            document.getElementById('prodDateInput').value = "";
 
-                    if (!rawJson || rawJson.length === 0) {
-                        alert("The uploaded Excel sheet contains no readable rows!");
-                        return;
-                    }
+            // 4. Reset Default Entry & Return Dates to Today
+            const todayYMD = new Date().toISOString().split('T')[0];
+            document.getElementById('entryDateInput').value = todayYMD;
+            document.getElementById('returnDateInput').value = todayYMD;
 
-                    // Flexible Column Mapping Rules
-                    const branchKeys = ['branch', 'branch name', 'branchname', 'store', 'location', 'site', 'customer', 'outlet'];
-                    const itemKeys = ['item', 'item name', 'itemname', 'product', 'description', 'item description', 'material'];
-                    const barcodeKeys = ['barcode', 'bar code', 'code', 'item code', 'upc', 'sku'];
-                    const dateKeys = ['date', 'sent date', 'sentdate', 'sale date', 'saledate', 'txn date'];
-                    const qtyKeys = ['sent qty', 'sentqty', 'qty', 'quantity', 'sent', 'sales qty', 'sold qty'];
-                    const priceKeys = ['price', 'unit price', 'unitprice', 'rate', 'cost'];
-                    const amtKeys = ['sent amt', 'sentamt', 'amount', 'total', 'sent amount', 'total amt', 'sales amt'];
-
-                    const parsedSales = rawJson.map(row => {
-                        const getVal = (possibleKeys) => {
-                            const foundKey = Object.keys(row).find(k => {
-                                const cleanK = String(k).trim().toLowerCase().replace(/_/g, ' ');
-                                return possibleKeys.includes(cleanK);
-                            });
-                            return foundKey ? row[foundKey] : undefined;
-                        };
-
-                        const branchVal = String(getVal(branchKeys) || '').trim();
-                        const itemVal = String(getVal(itemKeys) || '').trim();
-                        const barcodeVal = String(getVal(barcodeKeys) || '').trim();
-                        const dateVal = normalizeExcelDate(getVal(dateKeys));
-                        
-                        const sentQty = Number(getVal(qtyKeys) || 0);
-                        const unitPrice = Number(getVal(priceKeys) || 0);
-                        const amtRaw = getVal(amtKeys);
-                        const sentAmt = (amtRaw !== undefined && amtRaw !== "") ? Number(amtRaw) : (sentQty * unitPrice);
-
-                        return {
-                            sentDate: dateVal,
-                            branchName: branchVal || "General Branch",
-                            barcode: barcodeVal,
-                            itemName: itemVal || "General Item",
-                            sentQty: isNaN(sentQty) ? 0 : sentQty,
-                            unitPrice: isNaN(unitPrice) ? 0 : unitPrice,
-                            sentAmt: isNaN(sentAmt) ? 0 : sentAmt
-                        };
-                    }).filter(s => s.sentQty > 0 || s.sentAmt > 0 || (s.branchName !== "General Branch" && s.itemName !== "General Item"));
-
-                    if (parsedSales.length === 0) {
-                        alert("Could not detect sales rows. Please ensure your Excel file contains headers like 'Branch', 'Item', and 'Qty' or 'Amount'.");
-                        return;
-                    }
-
-                    salesData = parsedSales;
-                    localStorage.setItem('salesData', JSON.stringify(salesData));
-                    alert(`Success! Successfully imported ${salesData.length} sales entries.`);
-                    
-                    populateBranchFilterOptions();
-                    renderReports();
-                } catch (err) {
-                    console.error("Upload error:", err);
-                    alert("Error reading Excel file. Please ensure it is a valid .xlsx or .csv file.");
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function normalizeExcelDate(val) {
-            if (!val) return '';
-            if (typeof val === 'number') {
-                const jsDate = new Date((val - (25567 + 2)) * 86400 * 1000);
-                return jsDate.toISOString().split('T')[0];
-            }
-            const d = new Date(val);
-            if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
-            return String(val);
-        }
-
-        function populateBranchFilterOptions() {
-            const select = document.getElementById('filterBranchSelect');
-            select.innerHTML = '<option value="ALL">All Branches</option>';
-
-            const branchSet = new Set();
-            salesData.forEach(s => { if (s.branchName) branchSet.add(s.branchName); });
-            returnsData.forEach(r => { if (r.branchName) branchSet.add(r.branchName); });
-
-            branchSet.forEach(b => {
-                const opt = document.createElement('option');
-                opt.value = b;
-                opt.textContent = b;
-                select.appendChild(opt);
-            });
-        }
-
-        function resetFilters() {
-            document.getElementById('filterStartDate').value = '';
-            document.getElementById('filterEndDate').value = '';
-            document.getElementById('filterBranchSelect').value = 'ALL';
-            renderReports();
-        }
-
-        /* REPORT GENERATION & RENDERING */
-        function getFilteredData() {
-            const startDate = document.getElementById('filterStartDate').value;
-            const endDate = document.getElementById('filterEndDate').value;
-            const selectedBranch = document.getElementById('filterBranchSelect').value;
-
-            let filteredSales = salesData.filter(s => {
-                let match = true;
-                if (startDate && s.sentDate && s.sentDate < startDate) match = false;
-                if (endDate && s.sentDate && s.sentDate > endDate) match = false;
-                if (selectedBranch !== 'ALL' && s.branchName !== selectedBranch) match = false;
-                return match;
-            });
-
-            let filteredReturns = returnsData.filter(r => {
-                let match = true;
-                if (startDate && r.returnDate && r.returnDate < startDate) match = false;
-                if (endDate && r.returnDate && r.returnDate > endDate) match = false;
-                if (selectedBranch !== 'ALL' && r.branchName !== selectedBranch) match = false;
-                return match;
-            });
-
-            return { filteredSales, filteredReturns };
-        }
-
-        function renderReports() {
-            const { filteredSales, filteredReturns } = getFilteredData();
-
-            let totalSentQty = 0, totalSentAmt = 0;
-            let totalReturnQty = 0, totalReturnAmt = 0;
-
-            filteredSales.forEach(s => {
-                totalSentQty += s.sentQty;
-                totalSentAmt += s.sentAmt;
-            });
-
-            filteredReturns.forEach(r => {
-                totalReturnQty += r.qty;
-                totalReturnAmt += (r.totalPrice || (r.qty * r.unitPrice));
-            });
-
-            const totalSoldQty = totalSentQty - totalReturnQty;
-            const totalSoldAmt = totalSentAmt - totalReturnAmt;
-            const returnRate = totalSentQty > 0 ? (totalReturnQty / totalSentQty) * 100 : 0;
-
-            // Update KPI Displays
-            document.getElementById('kpiSentQty').textContent = totalSentQty.toLocaleString();
-            document.getElementById('kpiSentAmt').textContent = totalSentAmt.toFixed(3);
-            document.getElementById('kpiReturnQty').textContent = totalReturnQty.toLocaleString();
-            document.getElementById('kpiReturnAmt').textContent = totalReturnAmt.toFixed(3);
-            document.getElementById('kpiSoldQty').textContent = totalSoldQty.toLocaleString();
-            document.getElementById('kpiSoldAmt').textContent = totalSoldAmt.toFixed(3);
-            document.getElementById('kpiReturnRate').textContent = returnRate.toFixed(2) + "%";
-
-            renderChart(totalSentQty, totalReturnQty, totalSoldQty);
-            renderBranchReport(filteredSales, filteredReturns);
-            renderItemReport(filteredSales, filteredReturns);
-            renderSummaryReport(filteredSales, filteredReturns);
-        }
-
-        function renderBranchReport(sales, returns) {
-            const branchMap = {};
-
-            sales.forEach(s => {
-                if (!branchMap[s.branchName]) {
-                    branchMap[s.branchName] = { sentQty: 0, sentAmt: 0, retQty: 0, retAmt: 0 };
-                }
-                branchMap[s.branchName].sentQty += s.sentQty;
-                branchMap[s.branchName].sentAmt += s.sentAmt;
-            });
-
-            returns.forEach(r => {
-                if (!branchMap[r.branchName]) {
-                    branchMap[r.branchName] = { sentQty: 0, sentAmt: 0, retQty: 0, retAmt: 0 };
-                }
-                branchMap[r.branchName].retQty += r.qty;
-                branchMap[r.branchName].retAmt += (r.totalPrice || (r.qty * r.unitPrice));
-            });
-
-            const tbody = document.getElementById('branchReportBody');
-            tbody.innerHTML = '';
-
-            const keys = Object.keys(branchMap);
-            if (keys.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No data available. Upload Sales or submit Returns.</td></tr>';
-                return;
-            }
-
-            keys.forEach(bName => {
-                const d = branchMap[bName];
-                const soldAmt = d.sentAmt - d.retAmt;
-                const retPct = d.sentQty > 0 ? (d.retQty / d.sentQty) * 100 : 0;
-
-                tbody.innerHTML += `<tr>
-                    <td><b>${bName}</b></td>
-                    <td>${d.sentQty.toLocaleString()}</td>
-                    <td>${d.retQty.toLocaleString()}</td>
-                    <td><span class="badge bg-${retPct > 15 ? 'danger' : 'success'}">${retPct.toFixed(2)}%</span></td>
-                    <td>${d.sentAmt.toFixed(3)}</td>
-                    <td>${d.retAmt.toFixed(3)}</td>
-                    <td><b>${soldAmt.toFixed(3)}</b></td>
-                </tr>`;
-            });
-        }
-
-        function renderItemReport(sales, returns) {
-            const itemMap = {};
-
-            sales.forEach(s => {
-                if (!itemMap[s.itemName]) {
-                    itemMap[s.itemName] = { sentQty: 0, sentAmt: 0, retQty: 0, retAmt: 0 };
-                }
-                itemMap[s.itemName].sentQty += s.sentQty;
-                itemMap[s.itemName].sentAmt += s.sentAmt;
-            });
-
-            returns.forEach(r => {
-                if (!itemMap[r.itemName]) {
-                    itemMap[r.itemName] = { sentQty: 0, sentAmt: 0, retQty: 0, retAmt: 0 };
-                }
-                itemMap[r.itemName].retQty += r.qty;
-                itemMap[r.itemName].retAmt += (r.totalPrice || (r.qty * r.unitPrice));
-            });
-
-            const tbody = document.getElementById('itemReportBody');
-            tbody.innerHTML = '';
-
-            const keys = Object.keys(itemMap);
-            if (keys.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No data available.</td></tr>';
-                return;
-            }
-
-            keys.forEach(iName => {
-                const d = itemMap[iName];
-                const soldQty = d.sentQty - d.retQty;
-                const soldAmt = d.sentAmt - d.retAmt;
-                const retPct = d.sentQty > 0 ? (d.retQty / d.sentQty) * 100 : 0;
-
-                tbody.innerHTML += `<tr>
-                    <td><b>${iName}</b></td>
-                    <td>${d.sentQty.toLocaleString()}</td>
-                    <td>${d.retQty.toLocaleString()}</td>
-                    <td>${soldQty.toLocaleString()}</td>
-                    <td><span class="badge bg-${retPct > 15 ? 'danger' : 'success'}">${retPct.toFixed(2)}%</span></td>
-                    <td>${d.sentAmt.toFixed(3)}</td>
-                    <td>${d.retAmt.toFixed(3)}</td>
-                    <td><b>${soldAmt.toFixed(3)}</b></td>
-                </tr>`;
-            });
-        }
-
-        function renderSummaryReport(sales, returns) {
-            const summaryMap = {};
-
-            sales.forEach(s => {
-                const key = `${s.branchName}___${s.itemName}`;
-                if (!summaryMap[key]) {
-                    summaryMap[key] = { branchName: s.branchName, itemName: s.itemName, sentQty: 0, sentAmt: 0, retQty: 0, retAmt: 0 };
-                }
-                summaryMap[key].sentQty += s.sentQty;
-                summaryMap[key].sentAmt += s.sentAmt;
-            });
-
-            returns.forEach(r => {
-                const key = `${r.branchName}___${r.itemName}`;
-                if (!summaryMap[key]) {
-                    summaryMap[key] = { branchName: r.branchName, itemName: r.itemName, sentQty: 0, sentAmt: 0, retQty: 0, retAmt: 0 };
-                }
-                summaryMap[key].retQty += r.qty;
-                summaryMap[key].retAmt += (r.totalPrice || (r.qty * r.unitPrice));
-            });
-
-            const tbody = document.getElementById('summaryReportBody');
-            tbody.innerHTML = '';
-
-            const list = Object.values(summaryMap);
-            if (list.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No summary data available.</td></tr>';
-                return;
-            }
-
-            list.forEach(d => {
-                const soldQty = d.sentQty - d.retQty;
-                const soldAmt = d.sentAmt - d.retAmt;
-                const retPct = d.sentQty > 0 ? (d.retQty / d.sentQty) * 100 : 0;
-
-                tbody.innerHTML += `<tr>
-                    <td>${d.branchName}</td>
-                    <td><b>${d.itemName}</b></td>
-                    <td>${d.sentQty.toLocaleString()}</td>
-                    <td>${soldQty.toLocaleString()}</td>
-                    <td>${d.retQty.toLocaleString()}</td>
-                    <td><span class="badge bg-${retPct > 15 ? 'danger' : 'success'}">${retPct.toFixed(2)}%</span></td>
-                    <td>${d.sentAmt.toFixed(3)}</td>
-                    <td>${d.retAmt.toFixed(3)}</td>
-                    <td><b>${soldAmt.toFixed(3)}</b></td>
-                </tr>`;
-            });
-        }
-
-        function renderChart(sent, returned, sold) {
-            const ctx = document.getElementById('overviewChart').getContext('2d');
-            if (overviewChartInstance) overviewChartInstance.destroy();
-
-            overviewChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Sent Qty', 'Return Qty', 'Sold Qty'],
-                    datasets: [{
-                        data: [sent, returned, sold],
-                        backgroundColor: ['#6366f1', '#f43f5e', '#10b981'],
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }
-
-        /* EXPORTS */
-        function exportDataToExcel(type) {
-            const dataToExport = (type === 'sales') ? salesData : returnsData;
-            if (dataToExport.length === 0) return alert(`No ${type} data available to export!`);
-
-            const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, type.toUpperCase());
-            XLSX.writeFile(workbook, `${type}_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
-        }
-
-        function exportSummaryToExcel() {
-            const { filteredSales, filteredReturns } = getFilteredData();
-            const summaryMap = {};
-
-            filteredSales.forEach(s => {
-                const key = `${s.branchName}___${s.itemName}`;
-                if (!summaryMap[key]) {
-                    summaryMap[key] = { 'Branch Name': s.branchName, 'Item Name': s.itemName, 'Sent Qty': 0, 'Return Qty': 0, 'Sent Amt': 0, 'Return Amt': 0 };
-                }
-                summaryMap[key]['Sent Qty'] += s.sentQty;
-                summaryMap[key]['Sent Amt'] += s.sentAmt;
-            });
-
-            filteredReturns.forEach(r => {
-                const key = `${r.branchName}___${r.itemName}`;
-                if (!summaryMap[key]) {
-                    summaryMap[key] = { 'Branch Name': r.branchName, 'Item Name': r.itemName, 'Sent Qty': 0, 'Return Qty': 0, 'Sent Amt': 0, 'Return Amt': 0 };
-                }
-                summaryMap[key]['Return Qty'] += r.qty;
-                summaryMap[key]['Return Amt'] += (r.totalPrice || (r.qty * r.unitPrice));
-            });
-
-            const exportRows = Object.values(summaryMap).map(row => {
-                const soldQty = row['Sent Qty'] - row['Return Qty'];
-                const soldAmt = row['Sent Amt'] - row['Return Amt'];
-                const returnPct = row['Sent Qty'] > 0 ? (row['Return Qty'] / row['Sent Qty']) * 100 : 0;
-
-                return {
-                    'Branch Name': row['Branch Name'],
-                    'Item Name': row['Item Name'],
-                    'Sent Qty': row['Sent Qty'],
-                    'Sold Qty': soldQty,
-                    'Return Qty': row['Return Qty'],
-                    'Return %': returnPct.toFixed(2) + '%',
-                    'Sent Amt (KWD)': row['Sent Amt'].toFixed(3),
-                    'Return Amt (KWD)': row['Return Amt'].toFixed(3),
-                    'Sold Amt (KWD)': soldAmt.toFixed(3)
-                };
-            });
-
-            const worksheet = XLSX.utils.json_to_sheet(exportRows);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Monthly Summary");
-            XLSX.writeFile(workbook, `End_Of_Month_Summary_${new Date().toISOString().split('T')[0]}.xlsx`);
+            // 5. Place cursor focus automatically in Invoice Number field
+            document.getElementById('invoiceNo').focus();
         }
     </script>
 </body>
